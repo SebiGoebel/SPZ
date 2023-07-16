@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="spz" name="talker" type="publisher.cpp" output="screen" />
+    <node pkg="spz" name="listener" type="listener.cpp" output="screen" />
+    
+</launch>
