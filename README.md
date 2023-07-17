@@ -44,7 +44,11 @@ https://imagetostl.com/convert/file/stl/to/ply#google_vignette
 
 dann mit einem binary file:
 
-pcl_mesh2pcd: convert a CAD model to a PCD (Point Cloud Data) file, using ray tracing operations.
+```bash
+pcl_mesh2pcd
+```
+
+: convert a CAD model to a PCD (Point Cloud Data) file, using ray tracing operations.
 
 **Syntax is: pcl_mesh2pcd input.{ply,obj} output.pcd <options>**, where options are:
 
