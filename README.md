@@ -52,8 +52,8 @@ pcl_mesh2pcd
 
 **Syntax is: pcl_mesh2pcd input.{ply,obj} output.pcd <options>**, where options are:
 
--level X = tessellated sphere level (default: 2)
+  -level X = tessellated sphere level (default: 2)
 
--resolution X = the sphere resolution in angle increments (default: 100 deg)
+  -resolution X = the sphere resolution in angle increments (default: 100 deg)
 
--leaf_size X = the XYZ leaf size for the VoxelGrid – for data reduction (default: 0.010000 m)
+  -leaf_size X = the XYZ leaf size for the VoxelGrid – for data reduction (default: 0.010000 m)
