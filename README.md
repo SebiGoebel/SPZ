@@ -17,11 +17,6 @@ Terminal 2:
 rosrun beginner_tutorials listener
 
 
-
-TODO:
-- installation guid
-- cleaning up package/code
-
 ## wichtige Links
 
 open3D Doku:
