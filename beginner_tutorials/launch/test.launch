@@ -1,4 +1,0 @@
-<launch>
-    <node pkg="beginner_tutorials" name="talker" type="talker.cpp" output="screen" />
-    <node pkg="beginner_tutorials" name="listener" type="listener.cpp" output="screen" />
-</launch>
