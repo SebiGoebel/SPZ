@@ -215,3 +215,6 @@ target_link_libraries(listener ${catkin_LIBRARIES})
 add_executable(convert_stl2pcd src/convert_stl2pcd.cpp)
 target_link_libraries(convert_stl2pcd ${catkin_LIBRARIES})
 #add_dependencies(convert_stl2pcd beginner_tutorials_generate_messages_cpp)
+
+add_executable(showPCDInRVIZ src/showPCDInRVIZ.cpp)
+target_link_libraries(showPCDInRVIZ ${catkin_LIBRARIES})

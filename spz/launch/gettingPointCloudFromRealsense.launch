@@ -1,5 +1,4 @@
 <launch>
-
     <!-- Starte den RealSense-Kameranode mit Pointcloud-Filtern -->
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
         <arg name="filters" value="pointcloud" />
@@ -15,5 +14,7 @@
 
     <!-- starte RVIZ mit config-->
     <node name="rviz" pkg="rviz" type="rviz" args="$(find spz)/config/rviz_config.rviz" />
-    
+
+    <!-- schreiben der point cloud in ein PCD-File -->
+    <node pkg="spz" name="listener" type="listener" output="screen" />
 </launch>

@@ -14,7 +14,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg)
   pcl::fromROSMsg(*msg, pcl_pc);
 
   // Pfad zur PointCloud-Datei
-  std::string file_path = ros::package::getPath("beginner_tutorials") + "/data/pointcloud.pcd";
+  std::string file_path = ros::package::getPath("spz") + "/data/pointcloud_test.pcd";
 
   // PointCloud speichern
   pcl::PCDWriter writer;
