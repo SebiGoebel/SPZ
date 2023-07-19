@@ -16,5 +16,5 @@
     <node name="rviz" pkg="rviz" type="rviz" args="$(find spz)/config/rviz_config.rviz" />
 
     <!-- schreiben der point cloud in ein PCD-File -->
-    <node pkg="spz" name="listener" type="listener" output="screen" />
+    <node pkg="spz" name="point_cloud_saver" type="point_cloud_saver" output="screen" />
 </launch>

@@ -208,8 +208,8 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(listener src/listener.cpp)
-target_link_libraries(listener ${catkin_LIBRARIES})
+add_executable(point_cloud_saver src/point_cloud_saver.cpp)
+target_link_libraries(point_cloud_saver ${catkin_LIBRARIES})
 #add_dependencies(listener beginner_tutorials_generate_messages_cpp)
 
 add_executable(convert_stl2pcd src/convert_stl2pcd.cpp)
