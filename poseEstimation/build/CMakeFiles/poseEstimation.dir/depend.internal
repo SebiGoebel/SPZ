@@ -356,6 +356,7 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/common/angles.h
  /usr/local/include/pcl-1.13/pcl/common/centroid.h
  /usr/local/include/pcl-1.13/pcl/common/colors.h
+ /usr/local/include/pcl-1.13/pcl/common/common.h
  /usr/local/include/pcl-1.13/pcl/common/concatenate.h
  /usr/local/include/pcl-1.13/pcl/common/copy_point.h
  /usr/local/include/pcl-1.13/pcl/common/distances.h
@@ -363,6 +364,7 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/common/impl/accumulators.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/angles.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/centroid.hpp
+ /usr/local/include/pcl-1.13/pcl/common/impl/common.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/copy_point.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/eigen.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/io.hpp
@@ -378,13 +380,24 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/correspondence.h
  /usr/local/include/pcl-1.13/pcl/exceptions.h
  /usr/local/include/pcl-1.13/pcl/features/feature.h
+ /usr/local/include/pcl-1.13/pcl/features/fpfh.h
  /usr/local/include/pcl-1.13/pcl/features/impl/feature.hpp
+ /usr/local/include/pcl-1.13/pcl/features/impl/fpfh.hpp
  /usr/local/include/pcl-1.13/pcl/features/impl/integral_image2D.hpp
  /usr/local/include/pcl-1.13/pcl/features/impl/integral_image_normal.hpp
  /usr/local/include/pcl-1.13/pcl/features/impl/normal_3d.hpp
+ /usr/local/include/pcl-1.13/pcl/features/impl/pfh.hpp
+ /usr/local/include/pcl-1.13/pcl/features/impl/vfh.hpp
  /usr/local/include/pcl-1.13/pcl/features/integral_image2D.h
  /usr/local/include/pcl-1.13/pcl/features/integral_image_normal.h
  /usr/local/include/pcl-1.13/pcl/features/normal_3d.h
+ /usr/local/include/pcl-1.13/pcl/features/pfh.h
+ /usr/local/include/pcl-1.13/pcl/features/pfh_tools.h
+ /usr/local/include/pcl-1.13/pcl/features/vfh.h
+ /usr/local/include/pcl-1.13/pcl/filters/filter.h
+ /usr/local/include/pcl-1.13/pcl/filters/impl/filter.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/impl/voxel_grid.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/voxel_grid.h
  /usr/local/include/pcl-1.13/pcl/for_each_type.h
  /usr/local/include/pcl-1.13/pcl/impl/cloud_iterator.hpp
  /usr/local/include/pcl-1.13/pcl/impl/pcl_base.hpp
