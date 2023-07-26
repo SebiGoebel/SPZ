@@ -92,8 +92,28 @@ int main()
 }
 */
 
+// ================ Tastenfunktion: Wenn ENTER gedrückt wird ================
+
+bool enterPress = false;
+void keyboardEventOccurred(const pcl::visualization::KeyboardEvent &event, void *viewer_void)
+{
+    pcl::visualization::PCLVisualizer *viewer = static_cast<pcl::visualization::PCLVisualizer *>(viewer_void);
+
+    // Wenn die Taste 'Enter' gedrückt wird
+    if (event.getKeySym() == "Return" && event.keyDown())
+    {
+        enterPress = true;
+    }
+}
+
 int main()
 {
+    pcl::visualization::PCLVisualizer viewer("PCL Viewer");
+    viewer.setBackgroundColor(0.0, 0.0, 0.0);
+    viewer.addCoordinateSystem(0.1);
+    viewer.initCameraParameters();
+    viewer.registerKeyboardCallback(keyboardEventOccurred, (void *)&viewer);
+
     // ================ converting STL2PCD ================
 
     if (convertingSTL2PCD)
@@ -115,16 +135,7 @@ int main()
         std::cout << "Saved " << convertedCloud->size() << " data points to " << filename_savingPCD << std::endl;
 
         // visualize converted cloud
-        pcl::visualization::PCLVisualizer viewer_0("PCL Viewer");
-        viewer_0.setBackgroundColor(0.0, 0.0, 0.0);
-        viewer_0.addPointCloud<pcl::PointXYZ>(convertedCloud);
-        viewer_0.addCoordinateSystem(0.1);
-        viewer_0.initCameraParameters();
-
-        while (!viewer_0.wasStopped())
-        {
-            viewer_0.spinOnce();
-        }
+        viewer.addPointCloud<pcl::PointXYZ>(convertedCloud, "convertedCloud");
 
         return 0; // to stop code here
     }
@@ -148,16 +159,8 @@ int main()
     }
 
     // visualize input cloud
-    pcl::visualization::PCLVisualizer viewer_1("Input Cloud");
-    viewer_1.setBackgroundColor(0.0, 0.0, 0.0);
-    viewer_1.addPointCloud<pcl::PointXYZ>(cloud_unfiltered);
-    // viewer_1.addCoordinateSystem (0.1);
-    viewer_1.initCameraParameters();
-
-    while (!viewer_1.wasStopped())
-    {
-        viewer_1.spinOnce();
-    }
+    //viewer.setWindowName("Input Cloud");
+    viewer.addPointCloud<pcl::PointXYZ>(cloud_unfiltered);
 
     // ==================================== Downsampling with VoxelGrid ====================================
 
@@ -180,16 +183,8 @@ int main()
     }
 
     // visualize filtered cloud
-    pcl::visualization::PCLVisualizer viewer_2("filtered Cloud with VoxelGrid");
-    viewer_2.setBackgroundColor(0.0, 0.0, 0.0);
-    viewer_2.addPointCloud<pcl::PointXYZ>(cloud);
-    // viewer_2.addCoordinateSystem (0.1);
-    viewer_2.initCameraParameters();
-
-    while (!viewer_2.wasStopped())
-    {
-        viewer_2.spinOnce();
-    }
+    //viewer.setWindowName("filtered Cloud with VoxelGrid");
+    viewer.addPointCloud<pcl::PointXYZ>(cloud, "input cloud");
 
     // ==================================== Normal estimation ====================================
 
@@ -274,16 +269,8 @@ int main()
     std::cout << "Anz. der nicht finiten Normalen: " << notFiniteNormalsCounter << std::endl;
 
     // visualize normals
-    pcl::visualization::PCLVisualizer viewer("normal estimation");
-    viewer.setBackgroundColor(0.0, 0.0, 0.5);
-    viewer.addPointCloudNormals<pcl::PointXYZ, pcl::Normal>(cloud, normals);
-    // viewer.addCoordinateSystem (0.1);
-    viewer.initCameraParameters();
-
-    while (!viewer.wasStopped())
-    {
-        viewer.spinOnce();
-    }
+    //viewer.setWindowName("normal esimation");
+    viewer.addPointCloudNormals<pcl::PointXYZ, pcl::Normal>(cloud, normals, 10, 0.05, "normals", 0);
 
     // ==================================== Features ====================================
 
@@ -423,6 +410,19 @@ int main()
             std::cout << "vfhs_size: " << vfhs->size() << std::endl;
         }
     }
+
+    // ==================================== Visualizer ====================================
+
+    while (!viewer.wasStopped())
+        {
+            viewer.spinOnce();
+            if (enterPress)
+            {
+                enterPress = false; // Variable zurücksetzen
+                // Führe hier den Code aus, den du Schritt für Schritt anzeigen möchtest
+                std::cout << "test" << std::endl;
+            }
+        }
 
     return 0;
 }
