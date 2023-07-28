@@ -12,6 +12,8 @@
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+#define scalingFactorForResizingObject 0.01
+
 // Types
 typedef pcl::PointNormal PointNT;
 typedef pcl::PointCloud<PointNT> PointCloudT;
@@ -19,6 +21,36 @@ typedef pcl::FPFHSignature33 FeatureT;
 typedef pcl::FPFHEstimationOMP<PointNT, PointNT, FeatureT> FeatureEstimationT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
 typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
+
+/*
+double computeCloudDiameter(const PointCloudT::ConstPtr &cloud)
+{
+  PointCloudT::Ptr cloud_downsampled(new PointCloudT());
+  pcl::VoxelGrid<PointXYZ> vg;
+  vg.setInputCloud(cloud);
+  vg.setLeafSize(0.005f, 0.005f, 0.005f);
+  vg.setDownsampleAllData(false);
+  vg.filter(*cloud_downsampled);
+
+  double diameter_sqr = 0;
+  for (size_t i = 0; i < cloud_downsampled->points.size(); i += 10)
+  {
+    for (size_t j = 0; j < cloud_downsampled->points.size(); j += 10)
+    {
+      if (i == j)
+        continue;
+      double distance_sqr = (cloud_downsampled->points[i].x - cloud_downsampled->points[j].x)*(cloud_downsampled->points[i].x - cloud_downsampled->points[j].x)
+        + (cloud_downsampled->points[i].y - cloud_downsampled->points[j].y)*(cloud_downsampled->points[i].y - cloud_downsampled->points[j].y)
+        + (cloud_downsampled->points[i].z - cloud_downsampled->points[j].z)*(cloud_downsampled->points[i].z - cloud_downsampled->points[j].z);
+      if (distance_sqr > diameter_sqr)
+      {
+        diameter_sqr = distance_sqr;
+      }
+    }
+  }
+  return sqrt(diameter_sqr);
+}
+*/
 
 bool spaceKeyPressed = false;
 bool coordinateSystemsAreShown = false;
@@ -59,15 +91,83 @@ int main(int argc, char **argv)
     return (1);
   }
 
+  // ================ visualizing input clouds ================
+
+  pcl::console::print_highlight("Visualizing input clouds...\n");
+
+  // visualize converted cloud
+  pcl::visualization::PCLVisualizer viewer_input("PCL Viewer");
+  viewer_input.initCameraParameters();
+  viewer_input.setBackgroundColor(0.0, 0.0, 0.0);
+
+  int v1(0);
+  viewer_input.createViewPort(0.0, 0.0, 0.5, 1.0, v1);
+  viewer_input.setBackgroundColor(0, 0, 0, v1);
+  viewer_input.addText("Object", 10, 10, "v1 text", v1);
+  viewer_input.addPointCloud<PointNT>(object, "object_cloud", v1);
+
+  int v2(0);
+  viewer_input.createViewPort(0.5, 0.0, 1.0, 1.0, v2);
+  viewer_input.setBackgroundColor(0.3, 0.3, 0.3, v2);
+  viewer_input.addText("Scene", 10, 10, "v2 text", v2);
+  viewer_input.addPointCloud<PointNT>(scene_before_downsampling, "scene_cloud", v2);
+
+  viewer_input.addCoordinateSystem(0.1);
+
+  while (!viewer_input.wasStopped())
+  {
+    viewer_input.spinOnce();
+  }
+
+  // ================ centering the object ================
+
+  pcl::console::print_highlight("Centering Object...\n");
+
+  Eigen::Vector3d sum_of_pos = Eigen::Vector3d::Zero();
+  for (const auto &p : *(object))
+    sum_of_pos += p.getVector3fMap().cast<double>();
+
+  Eigen::Matrix4d transform_centering = Eigen::Matrix4d::Identity();
+  transform_centering.topRightCorner<3, 1>() = -sum_of_pos / object->size();
+
+  pcl::transformPointCloud(*object, *object, transform_centering);
+  // turning 90° um y
+  // pcl::transformPointCloud(*object, *object, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071, 0, -0.7071, 0));
+
+  // ================ resizing object ================
+
+  pcl::console::print_highlight("Resizing Object...\n");
+
+  for (auto &point : *(object))
+  {
+    point.x *= scalingFactorForResizingObject;
+    point.y *= scalingFactorForResizingObject;
+    point.z *= scalingFactorForResizingObject;
+  }
+
+  // ================ Downsample object and scene ================
+
   // Downsample
   pcl::console::print_highlight("Downsampling...\n");
   pcl::VoxelGrid<PointNT> grid;
-  const float leaf = 0.005f;
+  const float leaf = 0.005f; // tutorial: 0.005f
   grid.setLeafSize(leaf, leaf, leaf);
   grid.setInputCloud(object);
   grid.filter(*object);
   grid.setInputCloud(scene_before_downsampling);
   grid.filter(*scene);
+
+  // visualize downsampled cloud
+  pcl::visualization::PCLVisualizer viewer_downsampled("filtered Cloud with VoxelGrid");
+  viewer_downsampled.setBackgroundColor(0.0, 0.0, 0.0);
+  viewer_downsampled.addPointCloud<PointNT>(object);
+  viewer_downsampled.addCoordinateSystem(0.1);
+  viewer_downsampled.initCameraParameters();
+
+  while (!viewer_downsampled.wasStopped())
+  {
+    viewer_downsampled.spinOnce();
+  }
 
   // Estimate normals for scene
   pcl::console::print_highlight("Estimating scene normals...\n");
@@ -160,7 +260,7 @@ int main(int argc, char **argv)
           origin_object.y = transformation(1, 3) + 0.02;
           origin_object.z = transformation(2, 3);
           visu.addText3D("Object", origin_object, 0.01, 1.0, 1.0, 1.0, "object_text", 0);
-          
+
           coordinateSystemsAreShown = true;
           std::cout << "=> added Coordinatesystems" << std::endl;
         }
