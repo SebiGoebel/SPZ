@@ -38,25 +38,25 @@
 
 #define convertingSTL2PCD false
 
-#define filename_pcd "../data/pointcloud_test_hand.pcd"
-// #define filename_pcd "../data/teil_default.pcd"
+//#define filename_pcd "../data/pointcloud_test_hand.pcd"
+#define filename_pcd "../data/teil_default.pcd"
 //  #define filename_pcd "../data/teil_leafSize5.pcd"
 
 #define downsamplingWithVoxelGrid true
-#define leafSize 0.01 // Voxelgröße von 1 cm (0.01 Meter)
+#define leafSize 0.005f // Voxelgröße von 1 cm (0.01 Meter)
 
 #define normalEstimationMethod 2 // 1 -> Normal Estimation Using Integral Images (faster, less accurate, PCD must be organised !!!)
                                  // 2 -> Normal Estimation                       (slow, more accurate, PCDs don't have to be organised)
 
-#define featureMethod 3 // 1 -> PFH  - Point Feature Histograms
+#define featureMethod 2 // 1 -> PFH  - Point Feature Histograms
                         // 2 -> FPFH - Fast Point Feature Histograms
                         // 3 -> VFH  - Viewpoint Feature Histogram
 
 // Use all neighbors in a sphere of radius 3cm
-#define normalNeigborRadius 0.03 // tutorial: 0.03
+#define normalNeigborRadius 0.005 // tutorial: 0.03
 
 // Use all neighbors in a sphere of radius 5cm
-#define featureNormalNeighborRadius 0.05 // tutorial: 0.05
+#define featureNormalNeighborRadius 0.025 // tutorial: 0.05
 
 // ================ creating a random pointcloud with 5 points and saving it ================
 
@@ -94,6 +94,10 @@ int main()
 
 int main()
 {
+    // ================ creating Point CLouds ================
+    
+
+
     // ================ converting STL2PCD ================
 
     if (convertingSTL2PCD)
