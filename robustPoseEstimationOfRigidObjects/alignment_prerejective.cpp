@@ -12,7 +12,16 @@
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#define scalingFactorForResizingObject 0.01
+// Object-Abmessungen
+#define objectLenght 0.1238 // m
+#define objectWidth 0.055   // m
+#define objectHight 0.016   // m
+
+#define resizingWithCalculatedRatio true // [true/false]
+                                         // true  --> resizing factor for the object will be callculated based on Object-Abmessungen
+                                         // false --> resizing factor is [scalingFactorForResizingObject]
+
+#define scalingFactorForResizingObject 0.001 // resizing factor for manual resizing
 
 // Types
 typedef pcl::PointNormal PointNT;
@@ -22,13 +31,13 @@ typedef pcl::FPFHEstimationOMP<PointNT, PointNT, FeatureT> FeatureEstimationT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
 typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
 
-/*
-double computeCloudDiameter(const PointCloudT::ConstPtr &cloud)
+double computeCloudDiameter(const PointCloudT::ConstPtr &cloud, float leafSize)
 {
   PointCloudT::Ptr cloud_downsampled(new PointCloudT());
-  pcl::VoxelGrid<PointXYZ> vg;
+  // pcl::VoxelGrid<pcl::PointXYZ> vg;
+  pcl::VoxelGrid<PointNT> vg;
   vg.setInputCloud(cloud);
-  vg.setLeafSize(0.005f, 0.005f, 0.005f);
+  vg.setLeafSize(leafSize, leafSize, leafSize);
   vg.setDownsampleAllData(false);
   vg.filter(*cloud_downsampled);
 
@@ -39,9 +48,7 @@ double computeCloudDiameter(const PointCloudT::ConstPtr &cloud)
     {
       if (i == j)
         continue;
-      double distance_sqr = (cloud_downsampled->points[i].x - cloud_downsampled->points[j].x)*(cloud_downsampled->points[i].x - cloud_downsampled->points[j].x)
-        + (cloud_downsampled->points[i].y - cloud_downsampled->points[j].y)*(cloud_downsampled->points[i].y - cloud_downsampled->points[j].y)
-        + (cloud_downsampled->points[i].z - cloud_downsampled->points[j].z)*(cloud_downsampled->points[i].z - cloud_downsampled->points[j].z);
+      double distance_sqr = (cloud_downsampled->points[i].x - cloud_downsampled->points[j].x) * (cloud_downsampled->points[i].x - cloud_downsampled->points[j].x) + (cloud_downsampled->points[i].y - cloud_downsampled->points[j].y) * (cloud_downsampled->points[i].y - cloud_downsampled->points[j].y) + (cloud_downsampled->points[i].z - cloud_downsampled->points[j].z) * (cloud_downsampled->points[i].z - cloud_downsampled->points[j].z);
       if (distance_sqr > diameter_sqr)
       {
         diameter_sqr = distance_sqr;
@@ -50,7 +57,12 @@ double computeCloudDiameter(const PointCloudT::ConstPtr &cloud)
   }
   return sqrt(diameter_sqr);
 }
-*/
+
+double computeObjectDiameter(float length, float width, float hight)
+{
+  double diameter_sqr = length * length + width * width + hight * hight;
+  return sqrt(diameter_sqr);
+}
 
 bool spaceKeyPressed = false;
 bool coordinateSystemsAreShown = false;
@@ -136,13 +148,56 @@ int main(int argc, char **argv)
 
   // ================ resizing object ================
 
-  pcl::console::print_highlight("Resizing Object...\n");
-
-  for (auto &point : *(object))
+  if (resizingWithCalculatedRatio)
   {
-    point.x *= scalingFactorForResizingObject;
-    point.y *= scalingFactorForResizingObject;
-    point.z *= scalingFactorForResizingObject;
+    pcl::console::print_highlight("Calculating Scalingfactor...\n");
+
+    // computing the cloud diameter from the object
+    double diameter_beforeResizing = computeCloudDiameter(object, 1.0);
+    std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
+
+    // computing the diameter from the real object using abmessungen
+    double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+    std::cout << "Object abmessungen diameter: " << diameterAbmessung << std::endl;
+
+    // calculating the scaling ratio
+    double scalingRatio = diameterAbmessung / diameter_beforeResizing;
+    pcl::console::print_highlight("Scalingfactor: %f\n", scalingRatio);
+
+    // actual resizing
+    pcl::console::print_highlight("Resizing Object...\n");
+
+    for (auto &point : *(object))
+    {
+      point.x *= scalingRatio;
+      point.y *= scalingRatio;
+      point.z *= scalingRatio;
+    }
+
+    // computing the diameter for checking
+    double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
+    std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+    std::cout << "Expected diameter: " << (diameterAbmessung-0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+  }
+  else
+  {
+    pcl::console::print_highlight("Manual Scalingfactor: %f \n", scalingFactorForResizingObject);
+
+    // resizing with manually set factor
+    pcl::console::print_highlight("Resizing Object...\n");
+
+    for (auto &point : *(object))
+    {
+      point.x *= scalingFactorForResizingObject;
+      point.y *= scalingFactorForResizingObject;
+      point.z *= scalingFactorForResizingObject;
+    }
+
+    // computing the diameter for checking
+    double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
+    std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+    double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+    std::cout << "Expected diameter: " << (diameterAbmessung-0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
   }
 
   // ================ Downsample object and scene ================
@@ -169,6 +224,8 @@ int main(int argc, char **argv)
     viewer_downsampled.spinOnce();
   }
 
+  // ================ Estimating normals ================
+
   // Estimate normals for scene
   pcl::console::print_highlight("Estimating scene normals...\n");
   pcl::NormalEstimationOMP<PointNT, PointNT> nest;
@@ -176,6 +233,8 @@ int main(int argc, char **argv)
   nest.setInputCloud(scene);
   nest.setSearchSurface(scene_before_downsampling);
   nest.compute(*scene);
+
+  // ================ Estimating features ================
 
   // Estimate features
   pcl::console::print_highlight("Estimating features...\n");
