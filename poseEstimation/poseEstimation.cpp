@@ -38,8 +38,14 @@
 
 #define convertingSTL2PCD false
 
-//#define filename_pcd "../data/pointcloud_test_hand.pcd"
-#define filename_pcd "../data/teil_default.pcd"
+//#define filename_pcd "../data/pointcloud_1_down_turned.pcd"
+//#define filename_pcd "../data/pointcloud_1_down.pcd"
+#define filename_pcd "../data/pointcloud_1_up.pcd"
+//#define filename_pcd "../data/pointcloud_1_up_turned.pcd"
+//#define filename_pcd "../data/pointcloud_2.pcd"
+//#define filename_pcd "../data/pointcloud_3.pcd"
+//#define filename_pcd "../data/pointcloud_6.pcd"
+//#define filename_pcd "../data/teil_default.pcd"
 //  #define filename_pcd "../data/teil_leafSize5.pcd"
 
 #define downsamplingWithVoxelGrid true
