@@ -212,6 +212,20 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/include/eigen3/Eigen/src/plugins/CommonCwiseUnaryOps.h
  /usr/include/eigen3/Eigen/src/plugins/MatrixCwiseBinaryOps.h
  /usr/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
+ /usr/include/eigen3/unsupported/Eigen/NonLinearOptimization
+ /usr/include/eigen3/unsupported/Eigen/NumericalDiff
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/HybridNonLinearSolver.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/LevenbergMarquardt.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/chkder.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/covar.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/dogleg.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/fdjac1.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/lmpar.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/qrsolv.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/r1mpyq.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/r1updt.h
+ /usr/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/rwupdt.h
+ /usr/include/eigen3/unsupported/Eigen/src/NumericalDiff/NumericalDiff.h
  /usr/include/vtk-7.1/vtkABI.h
  /usr/include/vtk-7.1/vtkAOSDataArrayTemplate.h
  /usr/include/vtk-7.1/vtkAbstractArray.h
@@ -313,8 +327,6 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/include/vtk-7.1/vtkSmartPointerBase.h
  /usr/include/vtk-7.1/vtkSphereSource.h
  /usr/include/vtk-7.1/vtkStdString.h
- /usr/include/vtk-7.1/vtkStructuredData.h
- /usr/include/vtk-7.1/vtkStructuredGrid.h
  /usr/include/vtk-7.1/vtkSystemIncludes.h
  /usr/include/vtk-7.1/vtkTextProperty.h
  /usr/include/vtk-7.1/vtkTexture.h
@@ -331,7 +343,6 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/include/vtk-7.1/vtkVectorText.h
  /usr/include/vtk-7.1/vtkVersion.h
  /usr/include/vtk-7.1/vtkVersionMacros.h
- /usr/include/vtk-7.1/vtkVertexGlyphFilter.h
  /usr/include/vtk-7.1/vtkViewport.h
  /usr/include/vtk-7.1/vtkVolume.h
  /usr/include/vtk-7.1/vtkVolumeCollection.h
@@ -353,7 +364,6 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/TextureMesh.h
  /usr/local/include/pcl-1.13/pcl/Vertices.h
  /usr/local/include/pcl-1.13/pcl/cloud_iterator.h
- /usr/local/include/pcl-1.13/pcl/common/angles.h
  /usr/local/include/pcl-1.13/pcl/common/centroid.h
  /usr/local/include/pcl-1.13/pcl/common/colors.h
  /usr/local/include/pcl-1.13/pcl/common/common.h
@@ -362,41 +372,40 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/common/distances.h
  /usr/local/include/pcl-1.13/pcl/common/eigen.h
  /usr/local/include/pcl-1.13/pcl/common/impl/accumulators.hpp
- /usr/local/include/pcl-1.13/pcl/common/impl/angles.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/centroid.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/common.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/copy_point.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/eigen.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/io.hpp
  /usr/local/include/pcl-1.13/pcl/common/impl/projection_matrix.hpp
- /usr/local/include/pcl-1.13/pcl/common/impl/vector_average.hpp
+ /usr/local/include/pcl-1.13/pcl/common/impl/transforms.hpp
  /usr/local/include/pcl-1.13/pcl/common/io.h
  /usr/local/include/pcl-1.13/pcl/common/point_tests.h
  /usr/local/include/pcl-1.13/pcl/common/projection_matrix.h
+ /usr/local/include/pcl-1.13/pcl/common/transforms.h
  /usr/local/include/pcl-1.13/pcl/common/utils.h
- /usr/local/include/pcl-1.13/pcl/common/vector_average.h
  /usr/local/include/pcl-1.13/pcl/console/print.h
  /usr/local/include/pcl-1.13/pcl/conversions.h
  /usr/local/include/pcl-1.13/pcl/correspondence.h
  /usr/local/include/pcl-1.13/pcl/exceptions.h
  /usr/local/include/pcl-1.13/pcl/features/feature.h
- /usr/local/include/pcl-1.13/pcl/features/fpfh.h
  /usr/local/include/pcl-1.13/pcl/features/impl/feature.hpp
- /usr/local/include/pcl-1.13/pcl/features/impl/fpfh.hpp
- /usr/local/include/pcl-1.13/pcl/features/impl/integral_image2D.hpp
- /usr/local/include/pcl-1.13/pcl/features/impl/integral_image_normal.hpp
  /usr/local/include/pcl-1.13/pcl/features/impl/normal_3d.hpp
  /usr/local/include/pcl-1.13/pcl/features/impl/pfh.hpp
- /usr/local/include/pcl-1.13/pcl/features/impl/vfh.hpp
- /usr/local/include/pcl-1.13/pcl/features/integral_image2D.h
- /usr/local/include/pcl-1.13/pcl/features/integral_image_normal.h
+ /usr/local/include/pcl-1.13/pcl/features/impl/ppf.hpp
  /usr/local/include/pcl-1.13/pcl/features/normal_3d.h
  /usr/local/include/pcl-1.13/pcl/features/pfh.h
  /usr/local/include/pcl-1.13/pcl/features/pfh_tools.h
- /usr/local/include/pcl-1.13/pcl/features/vfh.h
+ /usr/local/include/pcl-1.13/pcl/features/ppf.h
+ /usr/local/include/pcl-1.13/pcl/filters/extract_indices.h
  /usr/local/include/pcl-1.13/pcl/filters/filter.h
+ /usr/local/include/pcl-1.13/pcl/filters/filter_indices.h
+ /usr/local/include/pcl-1.13/pcl/filters/impl/extract_indices.hpp
  /usr/local/include/pcl-1.13/pcl/filters/impl/filter.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/impl/filter_indices.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/impl/passthrough.hpp
  /usr/local/include/pcl-1.13/pcl/filters/impl/voxel_grid.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/passthrough.h
  /usr/local/include/pcl-1.13/pcl/filters/voxel_grid.h
  /usr/local/include/pcl-1.13/pcl/for_each_type.h
  /usr/local/include/pcl-1.13/pcl/impl/cloud_iterator.hpp
@@ -404,12 +413,9 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/impl/point_types.hpp
  /usr/local/include/pcl-1.13/pcl/io/file_io.h
  /usr/local/include/pcl-1.13/pcl/io/impl/pcd_io.hpp
- /usr/local/include/pcl-1.13/pcl/io/impl/vtk_lib_io.hpp
  /usr/local/include/pcl-1.13/pcl/io/low_level_io.h
  /usr/local/include/pcl-1.13/pcl/io/lzf.h
  /usr/local/include/pcl-1.13/pcl/io/pcd_io.h
- /usr/local/include/pcl-1.13/pcl/io/vtk_io.h
- /usr/local/include/pcl-1.13/pcl/io/vtk_lib_io.h
  /usr/local/include/pcl-1.13/pcl/kdtree/impl/kdtree_flann.hpp
  /usr/local/include/pcl-1.13/pcl/kdtree/kdtree.h
  /usr/local/include/pcl-1.13/pcl/kdtree/kdtree_flann.h
@@ -422,17 +428,74 @@ CMakeFiles/poseEstimation.dir/poseEstimation.cpp.o
  /usr/local/include/pcl-1.13/pcl/point_representation.h
  /usr/local/include/pcl-1.13/pcl/point_struct_traits.h
  /usr/local/include/pcl-1.13/pcl/point_types.h
- /usr/local/include/pcl-1.13/pcl/range_image/impl/range_image.hpp
- /usr/local/include/pcl-1.13/pcl/range_image/impl/range_image_planar.hpp
- /usr/local/include/pcl-1.13/pcl/range_image/range_image.h
- /usr/local/include/pcl-1.13/pcl/range_image/range_image_planar.h
  /usr/local/include/pcl-1.13/pcl/register_point_struct.h
+ /usr/local/include/pcl-1.13/pcl/registration/correspondence_estimation.h
+ /usr/local/include/pcl-1.13/pcl/registration/correspondence_rejection.h
+ /usr/local/include/pcl-1.13/pcl/registration/correspondence_sorting.h
+ /usr/local/include/pcl-1.13/pcl/registration/correspondence_types.h
+ /usr/local/include/pcl-1.13/pcl/registration/impl/correspondence_estimation.hpp
+ /usr/local/include/pcl-1.13/pcl/registration/impl/correspondence_types.hpp
+ /usr/local/include/pcl-1.13/pcl/registration/impl/ppf_registration.hpp
+ /usr/local/include/pcl-1.13/pcl/registration/impl/registration.hpp
+ /usr/local/include/pcl-1.13/pcl/registration/ppf_registration.h
+ /usr/local/include/pcl-1.13/pcl/registration/registration.h
+ /usr/local/include/pcl-1.13/pcl/registration/transformation_estimation.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/lmeds.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/mlesac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/msac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/prosac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/ransac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/rmsac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/rransac.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_circle.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_circle3d.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_cone.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_cylinder.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_ellipse3d.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_line.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_normal_parallel_plane.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_normal_plane.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_normal_sphere.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_parallel_line.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_parallel_plane.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_perpendicular_plane.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_plane.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_sphere.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/impl/sac_model_stick.hpp
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/lmeds.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/method_types.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/mlesac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/model_types.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/msac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/prosac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/ransac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/rmsac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/rransac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_circle.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_circle3d.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_cone.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_cylinder.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_ellipse3d.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_line.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_normal_parallel_plane.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_normal_plane.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_normal_sphere.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_parallel_line.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_parallel_plane.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_perpendicular_plane.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_plane.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_sphere.h
+ /usr/local/include/pcl-1.13/pcl/sample_consensus/sac_model_stick.h
  /usr/local/include/pcl-1.13/pcl/search/impl/kdtree.hpp
  /usr/local/include/pcl-1.13/pcl/search/impl/organized.hpp
  /usr/local/include/pcl-1.13/pcl/search/impl/search.hpp
  /usr/local/include/pcl-1.13/pcl/search/kdtree.h
  /usr/local/include/pcl-1.13/pcl/search/organized.h
  /usr/local/include/pcl-1.13/pcl/search/search.h
+ /usr/local/include/pcl-1.13/pcl/segmentation/impl/sac_segmentation.hpp
+ /usr/local/include/pcl-1.13/pcl/segmentation/sac_segmentation.h
  /usr/local/include/pcl-1.13/pcl/type_traits.h
  /usr/local/include/pcl-1.13/pcl/types.h
  /usr/local/include/pcl-1.13/pcl/visualization/area_picking_event.h
