@@ -413,8 +413,10 @@ CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/f
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/extract_indices.hpp
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/filter.hpp
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/filter_indices.hpp
+CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/passthrough.hpp
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/statistical_outlier_removal.hpp
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/impl/voxel_grid.hpp
+CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/passthrough.h
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/statistical_outlier_removal.h
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/filters/voxel_grid.h
 CMakeFiles/pcd_write_test.dir/pcd_write.cpp.o: /usr/local/include/pcl-1.13/pcl/for_each_type.h

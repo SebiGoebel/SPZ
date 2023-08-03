@@ -45,6 +45,8 @@ pcl/filters/extract_indices.h
 -
 pcl/filters/statistical_outlier_removal.h
 -
+pcl/filters/passthrough.h
+-
 
 /usr/include/eigen3/Eigen/Cholesky
 Core
@@ -2590,6 +2592,10 @@ pcl/filters/filter.h
 pcl/filters/filter_indices.h
 -
 
+/usr/local/include/pcl-1.13/pcl/filters/impl/passthrough.hpp
+pcl/filters/passthrough.h
+-
+
 /usr/local/include/pcl-1.13/pcl/filters/impl/statistical_outlier_removal.hpp
 pcl/filters/statistical_outlier_removal.h
 -
@@ -2610,6 +2616,16 @@ pcl/common/io.h
 pcl/filters/voxel_grid.h
 -
 boost/sort/spreadsort/integer_sort.hpp
+-
+
+/usr/local/include/pcl-1.13/pcl/filters/passthrough.h
+limits
+-
+pcl/pcl_macros.h
+-
+pcl/filters/filter_indices.h
+-
+pcl/filters/impl/passthrough.hpp
 -
 
 /usr/local/include/pcl-1.13/pcl/filters/statistical_outlier_removal.h

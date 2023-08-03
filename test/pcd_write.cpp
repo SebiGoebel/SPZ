@@ -12,7 +12,6 @@
 #include <pcl/features/integral_image_normal.h>
 
 // Normalestimation test
-
 #include <pcl/features/normal_3d.h>
 
 // visualizer
@@ -47,6 +46,9 @@
 // statistical outlier removal
 #include <pcl/filters/statistical_outlier_removal.h>
 
+// pass through filter
+#include <pcl/filters/passthrough.h>
+
 #define convertingSTL2PCD false
 
 // #define filename_pcd "../data/pointcloud_1_down_turned.pcd"
@@ -59,7 +61,7 @@
 // #define filename_pcd "../data/teil_default.pcd"
 //  #define filename_pcd "../data/teil_leafSize5.pcd"
 
-#define downsamplingWithVoxelGrid true
+#define downsamplingWithVoxelGrid false
 #define leafSize 0.005f // Voxelgröße von 1 cm (0.01 Meter)
 
 #define normalEstimationMethod 2 // 1 -> Normal Estimation Using Integral Images (faster, less accurate, PCD must be organised !!!)
@@ -241,8 +243,36 @@ int main()
         }
     */
 
-    // ================ removing walls ================
+    // ================ passthrough filter ================
 
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pass.setInputCloud(cloud_unfiltered);
+
+    pass.setFilterFieldName("x");
+    pass.setFilterLimits(-0.18, 0.165);
+    //pass.setNegative (true);
+    pass.filter(*cloud_unfiltered);
+
+    pass.setFilterFieldName("y");
+    pass.setFilterLimits(-0.095, 0.1);
+    //pass.setNegative (true);
+    pass.filter(*cloud_unfiltered);
+
+    // visualize cloud after pass through filter
+    pcl::visualization::PCLVisualizer viewer_passThrough("After pass through filter");
+    viewer_passThrough.setBackgroundColor(0.0, 0.0, 0.0);
+    viewer_passThrough.addCoordinateSystem(0.1);
+    viewer_passThrough.initCameraParameters();
+
+    viewer_passThrough.addPointCloud<pcl::PointXYZ>(cloud_unfiltered);
+
+    while (!viewer_passThrough.wasStopped())
+    {
+        viewer_passThrough.spinOnce();
+    }
+
+    // ================ self coded pass through filter ================
+/*
     pcl::PointIndices::Ptr inliers_wall(new pcl::PointIndices());
     pcl::ExtractIndices<pcl::PointXYZ> extract_wall;
 
@@ -286,7 +316,7 @@ int main()
     {
         viewer_wallRemover.spinOnce();
     }
-
+*/
     // ==================================== Downsampling with VoxelGrid ====================================
 
     // pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2());
