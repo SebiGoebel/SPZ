@@ -12,6 +12,20 @@
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+// Plane Segmentation for Removing
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+
+// Extracting Indices
+#include <pcl/filters/extract_indices.h>
+
+// pass through filter
+#include <pcl/filters/passthrough.h>
+
+// ICP
+#include <pcl/registration/icp.h>
+
 // Object-Abmessungen
 #define objectLenght 0.1238 // m
 #define objectWidth 0.055   // m
@@ -23,6 +37,18 @@
 
 #define scalingFactorForResizingObject 0.001 // resizing factor for manual resizing
 
+// ___VOXELGRID:___
+#define voxelLeafSize 0.005f // Voxelgröße in m (Tutorial: 5 mm --> 0.005)
+// 0.02
+
+//  ___NORMAL-ESTIMATION:___
+#define normalNeigborRadius 0.005f // Tutorial: 0.005 --> Use all neighbors in a sphere of radius 5mm
+// 0.05
+
+// ___FPFH-ESTIMATION:___
+#define searchRadiusFPFH 0.025f // Tutorial: 0.025
+// 0.05
+
 // Types
 typedef pcl::PointNormal PointNT;
 typedef pcl::PointCloud<PointNT> PointCloudT;
@@ -31,10 +57,11 @@ typedef pcl::FPFHEstimationOMP<PointNT, PointNT, FeatureT> FeatureEstimationT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
 typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
 
+// ========================================= computing Diameters =========================================
+
 double computeCloudDiameter(const PointCloudT::ConstPtr &cloud, float leafSize)
 {
   PointCloudT::Ptr cloud_downsampled(new PointCloudT());
-  // pcl::VoxelGrid<pcl::PointXYZ> vg;
   pcl::VoxelGrid<PointNT> vg;
   vg.setInputCloud(cloud);
   vg.setLeafSize(leafSize, leafSize, leafSize);
@@ -64,6 +91,77 @@ double computeObjectDiameter(float length, float width, float hight)
   return sqrt(diameter_sqr);
 }
 
+// ========================================= Viwers =========================================
+
+void littleViewer(const char *windowTitle, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud)
+{
+  // Terminal message
+  pcl::console::print_highlight("Visualizing ");
+  std::cout << windowTitle << "..." << std::endl;
+
+  // Visualiser
+  pcl::visualization::PCLVisualizer viewer(windowTitle);
+  viewer.setBackgroundColor(0.0, 0.0, 0.0);
+  viewer.addCoordinateSystem(0.1);
+  viewer.initCameraParameters();
+  viewer.addPointCloud<pcl::PointXYZ>(cloud);
+
+  while (!viewer.wasStopped())
+  {
+    viewer.spinOnce();
+  }
+}
+
+void littleViewerPointNormal(const char *windowTitle, const PointCloudT::ConstPtr &cloud)
+{
+  // Terminal message
+  pcl::console::print_highlight("Visualizing ");
+  std::cout << windowTitle << "..." << std::endl;
+
+  // Visualiser
+  pcl::visualization::PCLVisualizer viewer(windowTitle);
+  viewer.setBackgroundColor(0.0, 0.0, 0.0);
+  viewer.addCoordinateSystem(0.1);
+  viewer.initCameraParameters();
+  viewer.addPointCloud<PointNT>(cloud);
+
+  while (!viewer.wasStopped())
+  {
+    viewer.spinOnce();
+  }
+}
+
+void comparisonViewer(const char *windowTitle, std::string text1, const PointCloudT::ConstPtr &cloud1, std::string text2, const PointCloudT::ConstPtr &cloud2)
+{
+  // Terminal message
+  pcl::console::print_highlight("Visualizing ");
+  std::cout << windowTitle << "..." << std::endl;
+
+  // Visualiser
+  pcl::visualization::PCLVisualizer viewer(windowTitle);
+  viewer.initCameraParameters();
+  viewer.setBackgroundColor(0.0, 0.0, 0.0);
+
+  int v1(0);
+  viewer.createViewPort(0.0, 0.0, 0.5, 1.0, v1);
+  viewer.setBackgroundColor(0, 0, 0, v1);
+  viewer.addText(text1, 10, 10, "v1 text", v1);
+  viewer.addPointCloud<PointNT>(cloud1, "cloud1", v1);
+
+  int v2(0);
+  viewer.createViewPort(0.5, 0.0, 1.0, 1.0, v2);
+  viewer.setBackgroundColor(0.3, 0.3, 0.3, v2);
+  viewer.addText(text2, 10, 10, "v2 text", v2);
+  viewer.addPointCloud<PointNT>(cloud2, "cloud2", v2);
+
+  viewer.addCoordinateSystem(0.1);
+
+  while (!viewer.wasStopped())
+  {
+    viewer.spinOnce();
+  }
+}
+
 bool spaceKeyPressed = false;
 bool coordinateSystemsAreShown = false;
 void keyboardEventOccurred(const pcl::visualization::KeyboardEvent &event, void *viewer_void)
@@ -79,6 +177,8 @@ void keyboardEventOccurred(const pcl::visualization::KeyboardEvent &event, void 
 // Align a rigid object to a scene with clutter and occlusions
 int main(int argc, char **argv)
 {
+  // ================ loading Pointclouds ================
+
   // Point clouds
   PointCloudT::Ptr object(new PointCloudT);
   PointCloudT::Ptr object_aligned(new PointCloudT);
@@ -86,6 +186,9 @@ int main(int argc, char **argv)
   PointCloudT::Ptr scene(new PointCloudT);
   FeatureCloudT::Ptr object_features(new FeatureCloudT);
   FeatureCloudT::Ptr scene_features(new FeatureCloudT);
+
+  PointCloudT::Ptr scene_copy(new PointCloudT);
+  PointCloudT::Ptr object_copy(new PointCloudT);
 
   // Get input object and scene
   if (argc != 3)
@@ -103,35 +206,12 @@ int main(int argc, char **argv)
     return (1);
   }
 
-  // ================ visualizing input clouds ================
+  // visualizing input clouds
+  comparisonViewer("Input Clouds", "Model", object, "Scene", scene_before_downsampling);
 
-  pcl::console::print_highlight("Visualizing input clouds...\n");
+  // =========================================================== Preparing Model ===========================================================
 
-  // visualize converted cloud
-  pcl::visualization::PCLVisualizer viewer_input("PCL Viewer");
-  viewer_input.initCameraParameters();
-  viewer_input.setBackgroundColor(0.0, 0.0, 0.0);
-
-  int v1(0);
-  viewer_input.createViewPort(0.0, 0.0, 0.5, 1.0, v1);
-  viewer_input.setBackgroundColor(0, 0, 0, v1);
-  viewer_input.addText("Object", 10, 10, "v1 text", v1);
-  viewer_input.addPointCloud<PointNT>(object, "object_cloud", v1);
-
-  int v2(0);
-  viewer_input.createViewPort(0.5, 0.0, 1.0, 1.0, v2);
-  viewer_input.setBackgroundColor(0.3, 0.3, 0.3, v2);
-  viewer_input.addText("Scene", 10, 10, "v2 text", v2);
-  viewer_input.addPointCloud<PointNT>(scene_before_downsampling, "scene_cloud", v2);
-
-  viewer_input.addCoordinateSystem(0.1);
-
-  while (!viewer_input.wasStopped())
-  {
-    viewer_input.spinOnce();
-  }
-
-  // ================ centering the object ================
+  // ---------------- centering the model ----------------
 
   pcl::console::print_highlight("Centering Object...\n");
 
@@ -146,7 +226,10 @@ int main(int argc, char **argv)
   // turning 90° um y
   // pcl::transformPointCloud(*object, *object, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071, 0, -0.7071, 0));
 
-  // ================ resizing object ================
+  // visualizing centered model
+  littleViewerPointNormal("centered model", object);
+
+  // ---------------- resizing the model ----------------
 
   if (resizingWithCalculatedRatio)
   {
@@ -177,7 +260,7 @@ int main(int argc, char **argv)
     // computing the diameter for checking
     double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
     std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
-    std::cout << "Expected diameter: " << (diameterAbmessung-0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+    std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
   }
   else
   {
@@ -197,49 +280,115 @@ int main(int argc, char **argv)
     double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
     std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
     double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
-    std::cout << "Expected diameter: " << (diameterAbmessung-0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+    std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
   }
 
-  // ================ Downsample object and scene ================
+  // visualizing resized model
+  littleViewerPointNormal("resized model", object);
 
-  // Downsample
-  pcl::console::print_highlight("Downsampling...\n");
-  pcl::VoxelGrid<PointNT> grid;
-  const float leaf = 0.005f; // tutorial: 0.005f
-  grid.setLeafSize(leaf, leaf, leaf);
-  grid.setInputCloud(object);
-  grid.filter(*object);
-  grid.setInputCloud(scene_before_downsampling);
-  grid.filter(*scene);
+  // Übernehmen der zentrierten und verkleinerten punktwolke
+  pcl::copyPointCloud(*object, *object_copy);
 
-  // visualize downsampled cloud
-  pcl::visualization::PCLVisualizer viewer_downsampled("filtered Cloud with VoxelGrid");
-  viewer_downsampled.setBackgroundColor(0.0, 0.0, 0.0);
-  viewer_downsampled.addPointCloud<PointNT>(object);
-  viewer_downsampled.addCoordinateSystem(0.1);
-  viewer_downsampled.initCameraParameters();
+  // Übernehmen der scene ohne veränderungen
+  pcl::copyPointCloud(*scene_before_downsampling, *scene_copy);
 
-  while (!viewer_downsampled.wasStopped())
+  // =========================================================== Preparing Scene ===========================================================
+
+  // visualizing resized model
+  littleViewerPointNormal("Input cloud", scene_before_downsampling);
+
+  // ---------------- removing plane ----------------
+
+  pcl::SACSegmentation<PointNT> seg;
+  pcl::ExtractIndices<PointNT> extract_plane;
+  seg.setOptimizeCoefficients(true);
+  seg.setModelType(pcl::SACMODEL_PLANE);
+  seg.setMethodType(pcl::SAC_RANSAC);
+  seg.setMaxIterations(1000);
+  seg.setDistanceThreshold(0.0025);
+  extract_plane.setNegative(true);
+  pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients());
+  pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices());
+  const auto nr_points = scene_before_downsampling->size();
+
+  while (scene_before_downsampling->size() > 0.3 * nr_points)
   {
-    viewer_downsampled.spinOnce();
+    seg.setInputCloud(scene_before_downsampling);
+    seg.segment(*inliers_plane, *coefficients_plane);
+    PCL_INFO("inliers_plane: %zu\n", static_cast<std::size_t>(inliers_plane->indices.size()));
+    if (inliers_plane->indices.size() < 50000)
+      break;
+
+    extract_plane.setInputCloud(scene_before_downsampling);
+    extract_plane.setIndices(inliers_plane);
+    extract_plane.filter(*scene_before_downsampling);
   }
+
+  // visualizing cloud after plane removing
+  littleViewerPointNormal("plane removed", scene_before_downsampling);
+
+  // ---------------- removing walls ----------------
+
+  pcl::PassThrough<PointNT> pass;
+  pass.setInputCloud(scene_before_downsampling);
+
+  // X:
+  pass.setFilterFieldName("x");
+  pass.setFilterLimits(-0.15, 0.165);
+  // pass.setNegative (true);
+  pass.filter(*scene_before_downsampling);
+
+  // Y:
+  pass.setFilterFieldName("y");
+  pass.setFilterLimits(-0.09, 0.1);
+  // pass.setNegative (true);
+  pass.filter(*scene_before_downsampling);
+
+  // visualizing cloud after wall removing
+  littleViewerPointNormal("walls removed", scene_before_downsampling);
+
+  // ---------------- Visualizing ----------------
+
+  // visualizing the prepared model and scene
+  comparisonViewer("prepared Clouds", "Model", object, "Scene", scene_before_downsampling);
+
+  // =========================================================== separate Preparation DONE ===========================================================
+
+  // ----------------------- Downsampling Object and Scene with VoxelGrid -----------------------
+
+  pcl::console::print_highlight("Downsampling with VoxelGrid...\n");
+
+  pcl::VoxelGrid<PointNT> voxel_grid;
+  voxel_grid.setLeafSize(voxelLeafSize, voxelLeafSize, voxelLeafSize);
+  voxel_grid.setInputCloud(object);
+  voxel_grid.filter(*object);
+  voxel_grid.setInputCloud(scene_before_downsampling);
+  voxel_grid.filter(*scene);
+
+  // visualizing the downsampled model and scene
+  comparisonViewer("downsampled Clouds", "Model", object, "Scene", scene);
 
   // ================ Estimating normals ================
 
   // Estimate normals for scene
   pcl::console::print_highlight("Estimating scene normals...\n");
   pcl::NormalEstimationOMP<PointNT, PointNT> nest;
-  nest.setRadiusSearch(0.005);
+  nest.setRadiusSearch(normalNeigborRadius);
   nest.setInputCloud(scene);
   nest.setSearchSurface(scene_before_downsampling);
   nest.compute(*scene);
 
-  // ================ Estimating features ================
+  // visualizing the downsampled model and scene
+  comparisonViewer("normal estimation", "Model", object, "Scene", scene);
 
-  // Estimate features
+  // =========================================================== Downsampling and Normal Estimation DONE - starting with Features ===========================================================
+
+  // -------------- Extracting FPFHs --------------
+
   pcl::console::print_highlight("Estimating features...\n");
+
   FeatureEstimationT fest;
-  fest.setRadiusSearch(0.025);
+  fest.setRadiusSearch(searchRadiusFPFH);
   fest.setInputCloud(object);
   fest.setInputNormals(object);
   fest.compute(*object_features);
@@ -247,19 +396,21 @@ int main(int argc, char **argv)
   fest.setInputNormals(scene);
   fest.compute(*scene_features);
 
-  // Perform alignment
+  // -------------- Perform alignment --------------
+
   pcl::console::print_highlight("Starting alignment...\n");
+
   pcl::SampleConsensusPrerejective<PointNT, PointNT, FeatureT> align;
   align.setInputSource(object);
   align.setSourceFeatures(object_features);
   align.setInputTarget(scene);
   align.setTargetFeatures(scene_features);
-  align.setMaximumIterations(50000);               // Number of RANSAC iterations
-  align.setNumberOfSamples(3);                     // Number of points to sample for generating/prerejecting a pose
-  align.setCorrespondenceRandomness(5);            // Number of nearest features to use (when 5, 5 best matches and one is choosen ramdomly --> increases robustness against outlier matches)
-  align.setSimilarityThreshold(0.95f);             // Polygonal edge length similarity threshold
-  align.setMaxCorrespondenceDistance(2.5f * leaf); // Inlier threshold
-  align.setInlierFraction(0.25f);                  // Required inlier fraction for accepting a pose hypothesis
+  align.setMaximumIterations(50000);                        // Number of RANSAC iterations
+  align.setNumberOfSamples(3);                              // Number of points to sample for generating/prerejecting a pose
+  align.setCorrespondenceRandomness(5);                     // Number of nearest features to use (when 5, 5 best matches and one is choosen ramdomly --> increases robustness against outlier matches)
+  align.setSimilarityThreshold(0.80f);                      // 0.95       // Polygonal edge length similarity threshold
+  align.setMaxCorrespondenceDistance(2.5f * voxelLeafSize); // Inlier threshold
+  align.setInlierFraction(0.25f);                           // Required inlier fraction for accepting a pose hypothesis
   {
     pcl::ScopeTime t("Alignment");
     align.align(*object_aligned);
@@ -340,6 +491,64 @@ int main(int argc, char **argv)
   {
     pcl::console::print_error("Alignment failed!\n");
     return (1);
+  }
+
+  // ==================================================== ICP after Matching ====================================================
+
+  pcl::IterativeClosestPoint<PointNT, PointNT> icp;
+  icp.setInputSource(object_aligned);
+  icp.setInputTarget(scene);
+
+  // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+  icp.setMaxCorrespondenceDistance(2.5f * voxelLeafSize);
+  // Set the maximum number of iterations (criterion 1)
+  icp.setMaximumIterations(150);
+  // Set the transformation epsilon (criterion 2)
+  icp.setTransformationEpsilon(1e-8);
+  // Set the euclidean distance difference epsilon (criterion 3)
+  icp.setEuclideanFitnessEpsilon(1);
+
+  pcl::PointCloud<PointNT> Final;
+  icp.align(Final);
+
+  if (icp.hasConverged())
+  {
+    std::cout << "Aligned!" << std::endl;
+  }
+  else
+  {
+    std::cout << "Not Aligned!" << std::endl;
+  }
+
+  Eigen::Matrix4f transformation_icp = icp.getFinalTransformation();
+  pcl::console::print_info("    | %6.3f %6.3f %6.3f | \n", transformation_icp(0, 0), transformation_icp(0, 1), transformation_icp(0, 2));
+  pcl::console::print_info("R = | %6.3f %6.3f %6.3f | \n", transformation_icp(1, 0), transformation_icp(1, 1), transformation_icp(1, 2));
+  pcl::console::print_info("    | %6.3f %6.3f %6.3f | \n", transformation_icp(2, 0), transformation_icp(2, 1), transformation_icp(2, 2));
+  pcl::console::print_info("\n");
+  pcl::console::print_info("t = < %0.3f, %0.3f, %0.3f >\n", transformation_icp(0, 3), transformation_icp(1, 3), transformation_icp(2, 3));
+  pcl::console::print_info("\n");
+
+  // converting from Matrix4f -> Affine3f
+  Eigen::Affine3f final_transformation_icp(transformation_icp);
+
+  // transforming Model
+  PointCloudT::Ptr object_transformed_icp(new PointCloudT);
+  pcl::transformPointCloud(*object_aligned, *object_transformed_icp, final_transformation_icp);
+
+  // transforming Model Copy for Visualization
+  // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed_copy_icp(new pcl::PointCloud<pcl::PointXYZ>());
+  // pcl::transformPointCloud(*cloud_transformed_copy, *cloud_transformed_copy_icp, final_transformation_icp);
+
+  // Show alignment after icp
+  pcl::visualization::PCLVisualizer visu_icp("Alignment ICP");
+  visu_icp.addPointCloud(scene, ColorHandlerT(scene, 0.0, 255.0, 0.0), "scene_icp");
+  visu_icp.addPointCloud(object_transformed_icp, ColorHandlerT(object_aligned, 0.0, 0.0, 255.0), "object_aligned_icp");
+  visu_icp.initCameraParameters();
+  visu_icp.registerKeyboardCallback(keyboardEventOccurred, (void *)&visu_icp);
+
+  while (!visu_icp.wasStopped())
+  {
+    visu_icp.spinOnce();
   }
 
   return (0);
