@@ -38,8 +38,8 @@
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
 //#define filename_pcd_scene "../data/pointcloud_1_down.pcd"
-#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
-// #define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
+//#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
+#define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
 //#define filename_pcd_scene "../data/pointcloud_2.pcd"
 // #define filename_pcd_scene "../data/pointcloud_3.pcd"
 // #define filename_pcd_scene "../data/pointcloud_6.pcd"
@@ -226,8 +226,8 @@ int main()
     transform_centering.topRightCorner<3, 1>() = -sum_of_pos / cloud_model->size();
 
     pcl::transformPointCloud(*cloud_model, *cloud_model, transform_centering);
-    // turning 90° um y
-    // pcl::transformPointCloud(*cloud_model, *cloud_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071, 0, -0.7071, 0));
+    // turning 180° um y
+    //pcl::transformPointCloud(*cloud_model, *cloud_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
 
     // visualizing centered model
     littleViewer("centered model", cloud_model);
@@ -392,7 +392,7 @@ int main()
 
     // =========================================================== separate Preparation DONE ===========================================================
 
-    // ----------------------- Downsampling with VoxelGrid -----------------------
+    // ----------------------- Downsampling Model and Scene with VoxelGrid -----------------------
 
     pcl::console::print_highlight("Downsampling with VoxelGrid...\n");
 
@@ -653,7 +653,7 @@ int main()
     icp.setInputTarget(cloud_scene);
 
     // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
-    icp.setMaxCorrespondenceDistance(normalNeigborRadius*2);
+    icp.setMaxCorrespondenceDistance(2.5f * voxelLeafSize);
     // Set the maximum number of iterations (criterion 1)
     icp.setMaximumIterations(150);
     // Set the transformation epsilon (criterion 2)
