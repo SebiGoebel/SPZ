@@ -31,13 +31,16 @@
 // HashMap Search
 #include <pcl/registration/ppf_registration.h>
 
+// ICP
+#include <pcl/registration/icp.h>
+
 // ___INPUT:___
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
-// #define filename_pcd_scene "../data/pointcloud_1_down.pcd"
+//#define filename_pcd_scene "../data/pointcloud_1_down.pcd"
 #define filename_pcd_scene "../data/pointcloud_1_up.pcd"
 // #define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
-// #define filename_pcd_scene "../data/pointcloud_2.pcd"
+//#define filename_pcd_scene "../data/pointcloud_2.pcd"
 // #define filename_pcd_scene "../data/pointcloud_3.pcd"
 // #define filename_pcd_scene "../data/pointcloud_6.pcd"
 #define filename_pcd_model "../data/teil_default.pcd"
@@ -57,14 +60,19 @@
 #define scalingFactorForResizingObject 0.001 // resizing factor for manual resizing
 
 // ___VOXELGRID:___
-#define voxelLeafSize 0.005f // Voxelgröße in m (Tutorial: 1 cm --> 0.01)
+#define voxelLeafSize 0.02f // Voxelgröße in m (Tutorial: 1 cm --> 0.01)
 // 0.005f
 // 0.0025f --> beste
+// 0.02f --> beste, schnellste
 
 //  ___NORMAL-ESTIMATION:___
-#define normalNeigborRadius 0.01f // tutorial: 0.03 --> Use all neighbors in a sphere of radius 3cm
+#define normalNeigborRadius 0.05f // tutorial: 0.03 --> Use all neighbors in a sphere of radius 3cm
 // 0.01f
 // 0.005f --> beste
+// 0.05f --> beste, schnellste
+
+// ___HASH-SEARCH:___
+#define hashDistanceStep 0.05f // the step value between each bin of the hash map for the distance values
 
 double computeCloudDiameter(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud, float leafSize)
 {
@@ -175,6 +183,8 @@ int main()
     // point clouds
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_scene(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_model(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_scene_copy(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_model_copy(new pcl::PointCloud<pcl::PointXYZ>);
 
     // pcl::io::loadPCDFile("../data/table_scene_mug_stereo_textured.pcd", *cloud_unfiltered); // organised PCD
     // pcl::io::loadPCDFile(filename_pcd, *cloud_unfiltered);                                  // unorganised PCD
@@ -279,6 +289,12 @@ int main()
     // visualizing resized model
     littleViewer("resized model", cloud_model);
 
+    // Übernehmen der zentrierten und verkleinerten punktwolke
+    pcl::copyPointCloud(*cloud_model, *cloud_model_copy);
+
+    // Übernehmen der scene ohne veränderungen
+    pcl::copyPointCloud(*cloud_scene, *cloud_scene_copy);
+
     // =========================================================== Preparing Scene ===========================================================
 
     // visualizing input cloud_scene
@@ -321,13 +337,13 @@ int main()
 
     // X:
     pass.setFilterFieldName("x");
-    pass.setFilterLimits(-0.18, 0.165);
+    pass.setFilterLimits(-0.15, 0.165);
     // pass.setNegative (true);
     pass.filter(*cloud_scene);
 
     // Y:
     pass.setFilterFieldName("y");
-    pass.setFilterLimits(-0.095, 0.1);
+    pass.setFilterLimits(-0.09, 0.1);
     // pass.setNegative (true);
     pass.filter(*cloud_scene);
 
@@ -542,7 +558,7 @@ int main()
 
     // pcl::PPFHashMapSearch::Ptr hashmap_search(new pcl::PPFHashMapSearch(12.0f / 180.0f * float(M_PI), 0.05f));
     // pcl::PPFHashMapSearch::Ptr hashmap_search(new pcl::PPFHashMapSearch(12.0f / 180.0f * float(M_PI), 0.01f)); // default values
-    pcl::PPFHashMapSearch::Ptr hashmap_search(new pcl::PPFHashMapSearch(12.0f / 180.0f * float(M_PI), normalNeigborRadius));
+    pcl::PPFHashMapSearch::Ptr hashmap_search(new pcl::PPFHashMapSearch(12.0f / 180.0f * float(M_PI), hashDistanceStep));
     hashmap_search->setInputFeatureCloud(cloud_model_ppf);
 
     // -------------- Registering model to scene --------------
@@ -551,8 +567,8 @@ int main()
 
     pcl::PPFRegistration<pcl::PointNormal, pcl::PointNormal> ppf_registration;
     ppf_registration.setSceneReferencePointSamplingRate(10);                       // sampling rate for the scene reference point
-    ppf_registration.setPositionClusteringThreshold(0.2f);                         // distance threshold below which two poses are considered close enough to be in the same cluster (for the clustering phase of the algorithm)
-    ppf_registration.setRotationClusteringThreshold(30.0f / 180.0f * float(M_PI)); // rotation difference threshold below which two poses are considered to be in the same cluster (for the clustering phase of the algorithm)
+    ppf_registration.setPositionClusteringThreshold(0.02f);                        // distance threshold below which two poses are considered close enough to be in the same cluster (for the clustering phase of the algorithm)
+    ppf_registration.setRotationClusteringThreshold(15.0f / 180.0f * float(M_PI)); // rotation difference threshold below which two poses are considered to be in the same cluster (for the clustering phase of the algorithm)
     ppf_registration.setSearchMethod(hashmap_search);
     ppf_registration.setInputSource(model_cloud_with_normals);
     ppf_registration.setInputTarget(scene_cloud_with_normals);
@@ -560,14 +576,14 @@ int main()
     // aligning
     pcl::PointCloud<pcl::PointNormal> cloud_output;
     ppf_registration.align(cloud_output);
-
-    // converting PointNormal-Cloud -> PointXYZ-Cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_output_xyz(new pcl::PointCloud<pcl::PointXYZ>());
-    for (const auto &point : cloud_output.points)
-    {
-        cloud_output_xyz->points.emplace_back(point.x, point.y, point.z);
-    }
-
+    /*
+        // converting PointNormal-Cloud -> PointXYZ-Cloud
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_output_xyz(new pcl::PointCloud<pcl::PointXYZ>());
+        for (const auto &point : cloud_output.points)
+        {
+            cloud_output_xyz->points.emplace_back(point.x, point.y, point.z);
+        }
+    */
     Eigen::Matrix4f transformation = ppf_registration.getFinalTransformation();
     pcl::console::print_info("    | %6.3f %6.3f %6.3f | \n", transformation(0, 0), transformation(0, 1), transformation(0, 2));
     pcl::console::print_info("R = | %6.3f %6.3f %6.3f | \n", transformation(1, 0), transformation(1, 1), transformation(1, 2));
@@ -580,21 +596,128 @@ int main()
     Eigen::Affine3f final_transformation(transformation);
 
     // transforming Model
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_result(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::transformPointCloud(*cloud_model, *cloud_result, final_transformation);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::transformPointCloud(*cloud_model, *cloud_transformed, final_transformation);
+
+    // transforming Model Copy for Visualization
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed_copy(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::transformPointCloud(*cloud_model_copy, *cloud_transformed_copy, final_transformation);
 
     // Visualisation
-    pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> random_color(cloud_result->makeShared());
     pcl::visualization::PCLVisualizer viewer_result("PPF Object Recognition - Results");
     viewer_result.setBackgroundColor(0, 0, 0);
-    viewer_result.addPointCloud(cloud_scene);
-    viewer_result.addPointCloud(cloud_result, random_color, "model_result");
+    viewer_result.addCoordinateSystem(0.1);
+    viewer_result.initCameraParameters();
+    viewer_result.addPointCloud(cloud_scene_copy, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene_copy, 0.0, 255.0, 0.0), "scene");
+    viewer_result.addPointCloud(cloud_transformed_copy, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed_copy, 0.0, 0.0, 255.0), "model_transformed");
 
     pcl::console::print_highlight("All models have been registered!\n");
 
     while (!viewer_result.wasStopped())
     {
         viewer_result.spinOnce();
+    }
+
+    //////////////////////////////////
+
+    // Visualiser
+    pcl::visualization::PCLVisualizer viewer_resultVergleicher("PPF Object Recognition - Results");
+    viewer_resultVergleicher.addCoordinateSystem(0.1);
+    viewer_resultVergleicher.initCameraParameters();
+
+    int v1(0);
+    viewer_resultVergleicher.createViewPort(0.0, 0.0, 0.5, 1.0, v1);
+    viewer_resultVergleicher.setBackgroundColor(0, 0, 0, v1);
+    viewer_resultVergleicher.addText("Original PointClouds", 10, 10, "v1 text", v1);
+    viewer_resultVergleicher.addPointCloud(cloud_scene_copy, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene_copy, 0.0, 255.0, 0.0), "scene_vergleich");
+    viewer_resultVergleicher.addPointCloud(cloud_transformed_copy, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed_copy, 255.0, 0.0, 0.0), "model_transformed_vergleich");
+
+    int v2(0);
+    viewer_resultVergleicher.createViewPort(0.5, 0.0, 1.0, 1.0, v2);
+    viewer_resultVergleicher.setBackgroundColor(0, 0, 0, v2);
+    viewer_resultVergleicher.addText("prepared PointClouds", 10, 10, "v2 text", v2);
+    viewer_resultVergleicher.addPointCloud(cloud_scene, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene, 0.0, 255.0, 0.0), "scene_prepared_vergleich");
+    viewer_resultVergleicher.addPointCloud(cloud_transformed, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed, 255.0, 0.0, 0.0), "model_transformed_prepared_vergleich");
+
+    viewer_resultVergleicher.addCoordinateSystem(0.1);
+
+    while (!viewer_resultVergleicher.wasStopped())
+    {
+        viewer_resultVergleicher.spinOnce();
+    }
+
+    // ==================================================== ICP after Matching ====================================================
+
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputSource(cloud_transformed);
+    icp.setInputTarget(cloud_scene);
+
+    // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+    icp.setMaxCorrespondenceDistance(normalNeigborRadius*2);
+    // Set the maximum number of iterations (criterion 1)
+    icp.setMaximumIterations(150);
+    // Set the transformation epsilon (criterion 2)
+    icp.setTransformationEpsilon(1e-8);
+    // Set the euclidean distance difference epsilon (criterion 3)
+    icp.setEuclideanFitnessEpsilon(1);
+
+    pcl::PointCloud<pcl::PointXYZ> Final;
+    icp.align(Final);
+
+    if (icp.hasConverged())
+    {
+        std::cout << "Aligned!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Not Aligned!" << std::endl;
+    }
+
+    Eigen::Matrix4f transformation_icp = icp.getFinalTransformation();
+    pcl::console::print_info("    | %6.3f %6.3f %6.3f | \n", transformation_icp(0, 0), transformation_icp(0, 1), transformation_icp(0, 2));
+    pcl::console::print_info("R = | %6.3f %6.3f %6.3f | \n", transformation_icp(1, 0), transformation_icp(1, 1), transformation_icp(1, 2));
+    pcl::console::print_info("    | %6.3f %6.3f %6.3f | \n", transformation_icp(2, 0), transformation_icp(2, 1), transformation_icp(2, 2));
+    pcl::console::print_info("\n");
+    pcl::console::print_info("t = < %0.3f, %0.3f, %0.3f >\n", transformation_icp(0, 3), transformation_icp(1, 3), transformation_icp(2, 3));
+    pcl::console::print_info("\n");
+
+    // converting from Matrix4f -> Affine3f
+    Eigen::Affine3f final_transformation_icp(transformation_icp);
+
+    // transforming Model
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed_icp(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::transformPointCloud(*cloud_transformed, *cloud_transformed_icp, final_transformation_icp);
+
+    // transforming Model Copy for Visualization
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed_copy_icp(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::transformPointCloud(*cloud_transformed_copy, *cloud_transformed_copy_icp, final_transformation_icp);
+
+    //////////////////////////////////
+
+    // Visualiser
+    pcl::visualization::PCLVisualizer viewer_resultVergleicher_icp("PPF Object Recognition - Results - After ICP");
+    viewer_resultVergleicher_icp.addCoordinateSystem(0.1);
+    viewer_resultVergleicher_icp.initCameraParameters();
+
+    int v1_icp(0);
+    viewer_resultVergleicher_icp.createViewPort(0.0, 0.0, 0.5, 1.0, v1_icp);
+    viewer_resultVergleicher_icp.setBackgroundColor(0, 0, 0, v1_icp);
+    viewer_resultVergleicher_icp.addText("Original PointClouds", 10, 10, "v1_icp text", v1_icp);
+    viewer_resultVergleicher_icp.addPointCloud(cloud_scene_copy, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene_copy, 0.0, 255.0, 0.0), "scene_vergleich_icp");
+    viewer_resultVergleicher_icp.addPointCloud(cloud_transformed_copy_icp, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed_copy_icp, 255.0, 0.0, 0.0), "model_transformed_vergleich_icp");
+
+    int v2_icp(0);
+    viewer_resultVergleicher_icp.createViewPort(0.5, 0.0, 1.0, 1.0, v2_icp);
+    viewer_resultVergleicher_icp.setBackgroundColor(0, 0, 0, v2_icp);
+    viewer_resultVergleicher_icp.addText("prepared PointClouds", 10, 10, "v2_icp text", v2_icp);
+    viewer_resultVergleicher_icp.addPointCloud(cloud_scene, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene, 0.0, 255.0, 0.0), "scene_prepared_vergleich_icp");
+    viewer_resultVergleicher_icp.addPointCloud(cloud_transformed_icp, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed_icp, 255.0, 0.0, 0.0), "model_transformed_prepared_vergleich_icp");
+
+    viewer_resultVergleicher_icp.addCoordinateSystem(0.1);
+
+    while (!viewer_resultVergleicher_icp.wasStopped())
+    {
+        viewer_resultVergleicher_icp.spinOnce();
     }
 
     return 0;
