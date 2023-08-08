@@ -193,6 +193,10 @@ int main(int argc, char *argv[])
   if (use_cloud_resolution_)
   {
     float resolution = static_cast<float>(computeCloudResolution(model));
+    float resolution_scene = static_cast<float>(computeCloudResolution(scene));
+
+    std::cout << "Scene resolution:       " << resolution_scene << std::endl;
+
     if (resolution != 0.0f)
     {
       model_ss_ *= resolution;
@@ -210,6 +214,7 @@ int main(int argc, char *argv[])
     std::cout << "Clustering bin size:    " << cg_size_ << std::endl
               << std::endl;
   }
+  //return 0;
 
   //
   //  Compute Normals
