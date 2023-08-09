@@ -35,17 +35,20 @@
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
 // #define filename_pcd_scene "../data/pointcloud_1_down.pcd"
-#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
+// #define filename_pcd_scene "../data/pointcloud_1_up.pcd"
 // #define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
 // #define filename_pcd_scene "../data/pointcloud_2.pcd"
 // #define filename_pcd_scene "../data/pointcloud_3.pcd"
 // #define filename_pcd_scene "../data/pointcloud_6.pcd"
-#define filename_pcd_model "../data/teil_default.pcd"
-// #define filename_pcd_model "../data/teil_leafSize5.pcd"
+#define listOfScenes "../data/listOfScenes.txt"
+
+// teil_cad
+#define filename_pcd_model_cad "../data/teil_cad/teil_default.pcd"
+// #define filename_pcd_model_cad "../data/teil_leafSize5.pcd"
 
 // ___OUTPUT:___
-#define filename_pcd_result_scene "../results/pointcloud_1_up_prepared.pcd"
-#define filename_pcd_result_model "../results/teil_default_prepared.pcd"
+// #define filename_pcd_result_scene "../results/pointcloud_1_up_prepared.pcd"
+#define filename_pcd_result_model_cad "../results/model/cad/model_default_prepared.pcd"
 
 // ___RESIZING MODEL:___
 
@@ -177,54 +180,88 @@ int main()
     // ================ loading Pointclouds ================
 
     // point clouds
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_scene(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_model(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr model(new pcl::PointCloud<pcl::PointXYZ>);
 
     // pcl::io::loadPCDFile("../data/table_scene_mug_stereo_textured.pcd", *cloud_unfiltered); // organised PCD
     // pcl::io::loadPCDFile(filename_pcd, *cloud_unfiltered);                                  // unorganised PCD
 
-    // reading scene
-    PCL_INFO("Reading scene ...\n");
-    if (pcl::io::loadPCDFile<pcl::PointXYZ>(filename_pcd_scene, *cloud_scene) == -1)
-    {
-        PCL_ERROR("\nCouldn't read file ");
-        PCL_ERROR(filename_pcd_scene);
-        PCL_ERROR("\n");
-        return (-1);
-    }
+    /*
+        // reading scene
+        PCL_INFO("Reading scene ...\n");
+        if (pcl::io::loadPCDFile<pcl::PointXYZ>(filename_pcd_scene, *scene) == -1)
+        {
+            PCL_ERROR("\nCouldn't read file ");
+            PCL_ERROR(filename_pcd_scene);
+            PCL_ERROR("\n");
+            return (-1);
+        }
+    */
 
     // reading model
     PCL_INFO("Reading models ...\n");
-    if (pcl::io::loadPCDFile<pcl::PointXYZ>(filename_pcd_model, *cloud_model) == -1)
+    if (pcl::io::loadPCDFile<pcl::PointXYZ>(filename_pcd_model_cad, *model) == -1)
     {
         PCL_ERROR("\nCouldn't read file ");
-        PCL_ERROR(filename_pcd_model);
+        PCL_ERROR(filename_pcd_model_cad);
         PCL_ERROR("\n");
         return (-1);
     }
 
-    // visualizing input clouds
-    comparisonViewer("Input Clouds", "Model", cloud_model, "Scene", cloud_scene);
+    PCL_INFO("Reading scenes ...\n");
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> sceneList;
+    std::vector<std::string> filenamesList;
+    std::ifstream pcd_file_list(listOfScenes);
+    while (!pcd_file_list.eof())
+    {
+        char str[512];
+        pcd_file_list.getline(str, 512);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        if (pcl::io::loadPCDFile<pcl::PointXYZ>(str, *cloud) == -1)
+        {
+            PCL_ERROR("\nCouldn't read file ");
+            PCL_ERROR(str);
+            PCL_ERROR("\n");
+            return (-1);
+        }
+        sceneList.push_back(cloud);
+        filenamesList.push_back(str); // für das richtige shpeichern am ende
+        PCL_INFO("Model read: %s\n", str);
+    }
 
-    // =========================================================== Preparing Model ===========================================================
+    // visualizing input clouds
+    littleViewer("input cloud model cad", model);
+    const char *ueberschrift;
+    int index_ueberschrift = 0;
+    for (const auto &cloud_inList : sceneList)
+    {
+        ueberschrift = "scene - input cloud " + (index_ueberschrift + 1);
+        littleViewer(ueberschrift, cloud_inList);
+    }
+    // comparisonViewer("Input Clouds", "Model", model, "Scene", scene);
+
+    // =========================================================== Preparing Model CAD ===========================================================
+
+    // visualizing input cloud of cad model
+    littleViewer("input cloud cad model", model);
 
     // ---------------- centering the model ----------------
 
     pcl::console::print_highlight("Centering Model...\n");
 
     Eigen::Vector3d sum_of_pos = Eigen::Vector3d::Zero();
-    for (const auto &p : *(cloud_model))
+    for (const auto &p : *(model))
         sum_of_pos += p.getVector3fMap().cast<double>();
 
     Eigen::Matrix4d transform_centering = Eigen::Matrix4d::Identity();
-    transform_centering.topRightCorner<3, 1>() = -sum_of_pos / cloud_model->size();
+    transform_centering.topRightCorner<3, 1>() = -sum_of_pos / model->size();
 
-    pcl::transformPointCloud(*cloud_model, *cloud_model, transform_centering);
+    pcl::transformPointCloud(*model, *model, transform_centering);
     // turning 90° um y
-    // pcl::transformPointCloud(*cloud_model, *cloud_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071, 0, -0.7071, 0));
+    // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071, 0, -0.7071, 0));
 
     // visualizing centered model
-    littleViewer("centered model", cloud_model);
+    littleViewer("centered model", model);
 
     // ---------------- resizing the model ----------------
 
@@ -233,7 +270,7 @@ int main()
         pcl::console::print_highlight("Calculating Scalingfactor...\n");
 
         // computing the cloud diameter from the object
-        double diameter_beforeResizing = computeCloudDiameter(cloud_model, 1.0);
+        double diameter_beforeResizing = computeCloudDiameter(model, 1.0);
         std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
 
         // computing the diameter from the real object using abmessungen
@@ -247,7 +284,7 @@ int main()
         // actual resizing
         pcl::console::print_highlight("Resizing Object...\n");
 
-        for (auto &point : *(cloud_model))
+        for (auto &point : *(model))
         {
             point.x *= scalingRatio;
             point.y *= scalingRatio;
@@ -255,7 +292,7 @@ int main()
         }
 
         // computing the diameter for checking
-        double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
+        double diameterCheck_cloud = computeCloudDiameter(model, 0.005);
         std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
         std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
     }
@@ -266,7 +303,7 @@ int main()
         // resizing with manually set factor
         pcl::console::print_highlight("Resizing Model...\n");
 
-        for (auto &point : *(cloud_model))
+        for (auto &point : *(model))
         {
             point.x *= scalingFactorForResizingObject;
             point.y *= scalingFactorForResizingObject;
@@ -274,119 +311,172 @@ int main()
         }
 
         // computing the diameter for checking
-        double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
+        double diameterCheck_cloud = computeCloudDiameter(model, 0.005);
         std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
         double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
         std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
     }
 
     // visualizing resized model
-    littleViewer("resized model", cloud_model);
+    littleViewer("resized model", model);
 
     // =========================================================== Preparing Scene ===========================================================
 
-    // visualizing input cloud_scene
-    littleViewer("Input cloud", cloud_scene);
-
-    // ---------------- removing plane ----------------
-
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
-    seg.setOptimizeCoefficients(true);
-    seg.setModelType(pcl::SACMODEL_PLANE);
-    seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(1000);
-    seg.setDistanceThreshold(0.0025);
-    extract_plane.setNegative(true);
-    pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients());
-    pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices());
-    const auto nr_points = cloud_scene->size();
-
-    while (cloud_scene->size() > 0.3 * nr_points)
+    for (const auto &cloud_inList : sceneList)
     {
-        seg.setInputCloud(cloud_scene);
-        seg.segment(*inliers_plane, *coefficients_plane);
-        PCL_INFO("inliers_plane: %zu\n", static_cast<std::size_t>(inliers_plane->indices.size()));
-        if (inliers_plane->indices.size() < 50000)
-            break;
+        // visualizing input cloud_inList
+        littleViewer("Input cloud", cloud_inList);
 
-        extract_plane.setInputCloud(cloud_scene);
-        extract_plane.setIndices(inliers_plane);
-        extract_plane.filter(*cloud_scene);
-    }
+        // ---------------- removing plane ----------------
 
-    // visualizing cloud after plane removing
-    littleViewer("plane removed", cloud_scene);
+        pcl::SACSegmentation<pcl::PointXYZ> seg;
+        pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
+        seg.setOptimizeCoefficients(true);
+        seg.setModelType(pcl::SACMODEL_PLANE);
+        seg.setMethodType(pcl::SAC_RANSAC);
+        seg.setMaxIterations(1000);
+        seg.setDistanceThreshold(0.0025);
+        extract_plane.setNegative(true);
+        pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients());
+        pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices());
+        const auto nr_points = cloud_inList->size();
 
-    // ---------------- removing walls ----------------
-
-    pcl::PassThrough<pcl::PointXYZ> pass;
-    pass.setInputCloud(cloud_scene);
-
-    // X:
-    pass.setFilterFieldName("x");
-    pass.setFilterLimits(-0.18, 0.165);
-    // pass.setNegative (true);
-    pass.filter(*cloud_scene);
-
-    // Y:
-    pass.setFilterFieldName("y");
-    pass.setFilterLimits(-0.095, 0.1);
-    // pass.setNegative (true);
-    pass.filter(*cloud_scene);
-
-    // visualizing cloud after wall removing
-    littleViewer("walls removed", cloud_scene);
-
-    // ---------------- self coded pass through filter ----------------
-    /*
-        pcl::PointIndices::Ptr inliers_wall(new pcl::PointIndices());
-        pcl::ExtractIndices<pcl::PointXYZ> extract_wall;
-
-        float x_limit = 0.16f;
-        float y_limit = 0.095f;
-
-        int index = 0;
-        for (auto &point : *(cloud_unfiltered))
+        while (cloud_inList->size() > 0.3 * nr_points)
         {
-            if (point.x > x_limit || point.x < -x_limit)
-            {
-                inliers_wall->indices.push_back(index);
-            }
+            seg.setInputCloud(cloud_inList);
+            seg.segment(*inliers_plane, *coefficients_plane);
+            PCL_INFO("inliers_plane: %zu\n", static_cast<std::size_t>(inliers_plane->indices.size()));
+            if (inliers_plane->indices.size() < 50000)
+                break;
 
-            if (point.y > y_limit || point.y < -y_limit)
-            {
-                inliers_wall->indices.push_back(index);
-            }
-
-            // test mit z
-            // if(point.z > 0.3f){
-            //    inliers_wall->indices.push_back(index);
-            //}
-            index++;
+            extract_plane.setInputCloud(cloud_inList);
+            extract_plane.setIndices(inliers_plane);
+            extract_plane.filter(*cloud_inList);
         }
 
-        extract_wall.setInputCloud(cloud_unfiltered);
-        extract_wall.setIndices(inliers_wall);
-        extract_wall.setNegative(true);
-        extract_wall.filter(*cloud_unfiltered);
+        // visualizing cloud after plane removing
+        littleViewer("plane removed", cloud_inList);
 
-        // visualizing self coded pass through filter
-        littleViewer("self coded passthrough filter", cloud_scene);
-    */
+        // ---------------- removing walls ----------------
+
+        pcl::PassThrough<pcl::PointXYZ> pass;
+        pass.setInputCloud(cloud_inList);
+
+        // X:
+        pass.setFilterFieldName("x");
+        pass.setFilterLimits(-0.15, 0.165);
+        // pass.setNegative (true);
+        pass.filter(*cloud_inList);
+
+        // Y:
+        pass.setFilterFieldName("y");
+        pass.setFilterLimits(-0.085, 0.095);
+        // pass.setNegative (true);
+        pass.filter(*cloud_inList);
+
+        // visualizing cloud after wall removing
+        littleViewer("walls removed", cloud_inList);
+
+        // ---------------- alten werte die bei den test scenen reichen ----------------
+        /*
+            // X:
+            pass.setFilterFieldName("x");
+            pass.setFilterLimits(-0.18, 0.165);
+            // pass.setNegative (true);
+            pass.filter(*scene);
+            
+            // Y:
+            pass.setFilterFieldName("y");
+            pass.setFilterLimits(-0.095, 0.1);
+            // pass.setNegative (true);
+            pass.filter(*scene);
+        */
+        // ---------------- self coded pass through filter ----------------
+        /*
+            pcl::PointIndices::Ptr inliers_wall(new pcl::PointIndices());
+            pcl::ExtractIndices<pcl::PointXYZ> extract_wall;
+
+            float x_limit = 0.16f;
+            float y_limit = 0.095f;
+
+            int index = 0;
+            for (auto &point : *(cloud_unfiltered))
+            {
+                if (point.x > x_limit || point.x < -x_limit)
+                {
+                    inliers_wall->indices.push_back(index);
+                }
+
+                if (point.y > y_limit || point.y < -y_limit)
+                {
+                    inliers_wall->indices.push_back(index);
+                }
+
+                // test mit z
+                // if(point.z > 0.3f){
+                //    inliers_wall->indices.push_back(index);
+                //}
+                index++;
+            }
+
+            extract_wall.setInputCloud(cloud_unfiltered);
+            extract_wall.setIndices(inliers_wall);
+            extract_wall.setNegative(true);
+            extract_wall.filter(*cloud_unfiltered);
+
+            // visualizing self coded pass through filter
+            littleViewer("self coded passthrough filter", cloud_inList);
+        */
+    }
 
     // visualizing the prepared model and scene
-    comparisonViewer("prepared Clouds", "Model", cloud_model, "Scene", cloud_scene);
+    // comparisonViewer("prepared Clouds", "Model", model, "Scene", scene);
 
     // ================ saving Pointclouds ================
 
+    std::string filename_directory = "../results/";
+    int index = 0;
+
+    for (const auto &cloud_inList : sceneList)
+    {
+        std::string filename_result;
+
+        // std::string input = filenamesList.at(index);
+        size_t pos = filenamesList.at(index).rfind('/');
+        if (pos != std::string::npos)
+        {
+            std::string name_cuttet = filenamesList.at(index).substr(pos + 1); // +1, um das Trennzeichen zu überspringen
+            // std::cout << "Ergebnis: " << name_cuttet << std::endl;
+            if (name_cuttet.find("teil") == 0)
+            {
+                filename_result = filename_directory + "model/aufgenommen/" + name_cuttet;
+            }
+            else
+            {
+                filename_result = filename_directory + "scene/" + name_cuttet;
+            }
+        }
+        else
+        {
+            std::cout << "Trennzeichen nicht gefunden." << std::endl;
+            std::cout << "!!! FEHLER BEIM SPEICHERN DER PCDs !!!" << std::endl;
+            return 0;
+        }
+
+        // std::cout << filename_result << std::endl;
+        pcl::io::savePCDFileASCII(filename_result, *cloud_inList);
+        std::cerr << "Saved " << cloud_inList->size() << " data points to " << filename_result << "." << std::endl;
+
+        index++;
+    }
+
     // scene
-    pcl::io::savePCDFileASCII(filename_pcd_result_scene, *cloud_scene);
-    std::cerr << "Saved " << cloud_scene->size() << " data points to " << filename_pcd_result_scene << "." << std::endl;
+    // pcl::io::savePCDFileASCII(filename_pcd_result_scene, *scene);
+    // std::cerr << "Saved " << scene->size() << " data points to " << filename_pcd_result_scene << "." << std::endl;
 
     // model
-    pcl::io::savePCDFileASCII(filename_pcd_result_model, *cloud_model);
-    std::cerr << "Saved " << cloud_model->size() << " data points to " << filename_pcd_result_model << "." << std::endl;
+    pcl::io::savePCDFileASCII(filename_pcd_result_model_cad, *model);
+    std::cerr << "Saved " << model->size() << " data points to " << filename_pcd_result_model_cad << "." << std::endl;
 
     return 0;
 }
