@@ -39,11 +39,11 @@
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
 //#define filename_pcd_scene "../data/pointcloud_1_down.pcd"
 //#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
-#define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
+#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
 //#define filename_pcd_scene "../data/pointcloud_2.pcd"
 // #define filename_pcd_scene "../data/pointcloud_3.pcd"
 // #define filename_pcd_scene "../data/pointcloud_6.pcd"
-#define filename_pcd_model "../data/teil_default.pcd"
+#define filename_pcd_model "../data/teil_aufgenommen_up.pcd"
 // #define filename_pcd_model "../data/teil_leafSize5.pcd"
 
 // ___RESIZING MODEL:___
@@ -233,7 +233,7 @@ int main()
     littleViewer("centered model", cloud_model);
 
     // ---------------- resizing the model ----------------
-
+/*
     if (resizingWithCalculatedRatio)
     {
         pcl::console::print_highlight("Calculating Scalingfactor...\n");
@@ -285,7 +285,7 @@ int main()
         double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
         std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
     }
-
+*/
     // visualizing resized model
     littleViewer("resized model", cloud_model);
 
