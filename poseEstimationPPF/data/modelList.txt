@@ -1,1 +1,2 @@
-../data/teil_default.pcd
+../data/teil_default_prepared.pcd
+../data/teil_aufgenommen/teil_aufgenommen_up.pcd

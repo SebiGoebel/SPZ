@@ -44,6 +44,25 @@ PointCloud<PointNormal>::Ptr subsampleAndCalculateNormals(const PointCloud<Point
     return cloud_subsampled_with_normals;
 }
 
+void littleViewer(const char *windowTitle, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud)
+{
+    // Terminal message
+    pcl::console::print_highlight("Visualizing ");
+    std::cout << windowTitle << "..." << std::endl;
+
+    // Visualiser
+    pcl::visualization::PCLVisualizer viewer(windowTitle);
+    viewer.setBackgroundColor(0.0, 0.0, 0.0);
+    viewer.addCoordinateSystem(0.1);
+    viewer.initCameraParameters();
+    viewer.addPointCloud<pcl::PointXYZ>(cloud);
+
+    while (!viewer.wasStopped())
+    {
+        viewer.spinOnce();
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -51,6 +70,8 @@ int main(int argc, char **argv)
         PCL_ERROR("Syntax: ./poseEstimationPPF pcd_model_list pcd_scene\n");
         return -1;
     }
+
+    // ----------------------- reading clouds -----------------------
 
     /// read point clouds from HDD
     PCL_INFO("Reading scene ...\n");
@@ -72,67 +93,43 @@ int main(int argc, char **argv)
         PCL_INFO("Model read: %s\n", str);
     }
 
-    // ---------------------- viewer ----------------------
-
-    // visualize input cloud
-    pcl::visualization::PCLVisualizer viewer_1("Before method - Cloud");
-    viewer_1.setBackgroundColor(0.0, 0.0, 0.0);
-    viewer_1.addCoordinateSystem (0.1);
-    viewer_1.initCameraParameters();
-
-    viewer_1.addPointCloud<pcl::PointXYZ>(cloud_scene);
-
-    while (!viewer_1.wasStopped())
-    {
-        viewer_1.spinOnce();
-    }
-
-    // ---------------------- viewer ----------------------
-
+    // ----------------------------------------------- hier war der plane remover -----------------------------------------------
+    // ---------------- removing plane ----------------
+/*
     pcl::SACSegmentation<pcl::PointXYZ> seg;
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
     seg.setMaxIterations(1000);
     seg.setDistanceThreshold(0.0025);
-    extract.setNegative(true);
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    extract_plane.setNegative(true);
+    pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients());
+    pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices());
     const auto nr_points = cloud_scene->size();
 
     while (cloud_scene->size() > 0.3 * nr_points)
     {
         seg.setInputCloud(cloud_scene);
-        seg.segment(*inliers, *coefficients);
-        PCL_INFO("Plane inliers: %zu\n", static_cast<std::size_t>(inliers->indices.size()));
-        if (inliers->indices.size() < 50000)
+        seg.segment(*inliers_plane, *coefficients_plane);
+        PCL_INFO("inliers_plane: %zu\n", static_cast<std::size_t>(inliers_plane->indices.size()));
+        if (inliers_plane->indices.size() < 50000)
             break;
 
-        extract.setInputCloud(cloud_scene);
-        extract.setIndices(inliers);
-        extract.filter(*cloud_scene);
+        extract_plane.setInputCloud(cloud_scene);
+        extract_plane.setIndices(inliers_plane);
+        extract_plane.filter(*cloud_scene);
     }
+*/
+    // Visualization
+    littleViewer("input scene", cloud_scene);
 
-    // ---------------------- viewer ----------------------
-
-    // visualize input cloud
-    pcl::visualization::PCLVisualizer viewer_2("After method - Cloud");
-    viewer_2.setBackgroundColor(0.0, 0.0, 0.0);
-    viewer_2.addCoordinateSystem (0.1);
-    viewer_2.initCameraParameters();
-
-    viewer_2.addPointCloud<pcl::PointXYZ>(cloud_scene);
-
-    while (!viewer_2.wasStopped())
-    {
-        viewer_2.spinOnce();
-    }
-
-    // ---------------------- viewer ----------------------
+    // ----------------------- preparing clouds -----------------------
 
     PointCloud<PointNormal>::Ptr cloud_scene_input = subsampleAndCalculateNormals(cloud_scene);
     std::vector<PointCloud<PointNormal>::Ptr> cloud_models_with_normals;
+
+    // ----------------------- featrue extraction -----------------------
 
     PCL_INFO("Training models ...\n");
     std::vector<PPFHashMapSearch::Ptr> hashmap_search_vector;
@@ -153,11 +150,15 @@ int main(int argc, char **argv)
         hashmap_search_vector.push_back(hashmap_search);
     }
 
+    // ----------------------- viewer -----------------------
+
     visualization::PCLVisualizer viewer("PPF Object Recognition - Results");
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addPointCloud(cloud_scene);
     viewer.spinOnce(10);
     PCL_INFO("Registering models to scene ...\n");
+
+    // ----------------------- feature matching -----------------------
 
     for (std::size_t model_i = 0; model_i < cloud_models.size(); ++model_i)
     {
@@ -190,6 +191,8 @@ int main(int argc, char **argv)
     }
 
     PCL_INFO("All models have been registered!\n");
+
+    // ----------------------- viewer -----------------------
 
     while (!viewer.wasStopped())
     {
