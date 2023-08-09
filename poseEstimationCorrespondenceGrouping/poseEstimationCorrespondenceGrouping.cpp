@@ -31,6 +31,9 @@
 // SHOT Descriptors:
 #include <pcl/features/shot_omp.h>
 
+// Geometric Clustering
+#include <pcl/recognition/cg/geometric_consistency.h>
+
 // ___INPUT:___
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
@@ -44,8 +47,8 @@
 // #define filename_pcd_model "../data/teil_leafSize5.pcd"
 
 // test
-//#define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
-//#define filename_pcd_model "../data/milk.pcd"
+// #define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
+// #define filename_pcd_model "../data/milk.pcd"
 
 // ___RESIZING MODEL:___
 
@@ -62,11 +65,26 @@
 
 // ___UNIFORM SAMPLING:___
 #define uniformSamplingSearchRadiusModel 0.002f
+// 0.002f --> ohne VoxelGrid
 
 #define uniformSamplingSearchRadiusScene 0.006f
+// 0.006f --> ohne VoxelGrid
 
 // ___DESCRIPTORS WITH SHOT:___
 #define descriptorRadius 0.004f
+// 0.004f --> ohne VoxelGrid
+
+// ___CLUSTERING:___
+#define clusteringSize 0.1f
+// 0.1f --> ohne VoxelGrid
+
+#define clusteringTH 11.0f
+// 11.0f --> ohne VoxelGrid
+
+#define withVoxelGrid false // mit VoxelGrid funktioniert das garnicht !!!
+#define voxelGridLeafSize 0.005f // --> 5 mm
+
+#define showingCorresopences true
 
 double computeCloudDiameter(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud, float leafSize)
 {
@@ -389,9 +407,31 @@ int main()
 
     // =========================================================== separate Preparation DONE ===========================================================
 
-    // vielleicht noch einmal VoxelGrid anwenden!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // ----------------------- Downsampling with VoxelGrid -----------------------
 
-    // ----------------------- Estamating Normals -----------------------
+    if (withVoxelGrid)
+    {
+        pcl::console::print_highlight("VoxelGrid...\n");
+
+        pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
+        voxel_grid.setLeafSize(voxelGridLeafSize, voxelGridLeafSize, voxelGridLeafSize); // Voxelgröße von 1 cm (0.01 Meter)
+        voxel_grid.setInputCloud(model);
+        voxel_grid.filter(*model);
+        voxel_grid.setInputCloud(scene);
+        voxel_grid.filter(*scene);
+
+        // resolution
+        resolution = static_cast<float>(computeCloudResolution(model));
+        std::cout << "Model resolution:       " << resolution << std::endl;
+
+        resolution_scene = static_cast<float>(computeCloudResolution(scene));
+        std::cout << "Scene resolution:       " << resolution_scene << std::endl;
+
+        // visualizing downsampled clouds
+        comparisonViewer("Downsampled with VoxelGrid", "Model", model, "Scene", scene);
+    }
+
+    // ----------------------- Estimating Normals -----------------------
 
     pcl::console::print_highlight("Estimating Normals...\n");
 
@@ -437,6 +477,8 @@ int main()
 
     // ----------------------- Finding Model-Scene Correspondences with KdTree -----------------------
 
+    pcl::console::print_highlight("Computing Model-Scene Correspondences...\n");
+
     pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
 
     pcl::KdTreeFLANN<pcl::SHOT352> match_search;
@@ -451,6 +493,7 @@ int main()
         {
             continue;
         }
+
         int found_neighs = match_search.nearestKSearch(scene_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
         if (found_neighs == 1 && neigh_sqr_dists[0] < 0.25f) //  add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
         {
@@ -459,4 +502,95 @@ int main()
         }
     }
     std::cout << "Correspondences found: " << model_scene_corrs->size() << std::endl;
+
+    // ----------------------- Clustering -----------------------
+
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> allTransformations;
+    std::vector<pcl::Correspondences> clustered_corrs;
+
+    pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> gc_clusterer;
+    gc_clusterer.setGCSize(clusteringSize);
+    gc_clusterer.setGCThreshold(clusteringTH);
+
+    gc_clusterer.setInputCloud(model_keypoints);
+    gc_clusterer.setSceneCloud(scene_keypoints);
+    gc_clusterer.setModelSceneCorrespondences(model_scene_corrs);
+
+    // gc_clusterer.cluster (clustered_corrs);
+    gc_clusterer.recognize(allTransformations, clustered_corrs);
+
+    // ----------------------- Output after Clustering (printing allTransformations) -----------------------
+
+    std::cout << "Model instances found: " << allTransformations.size() << std::endl;
+
+    for (int i = 0; i < allTransformations.size(); i++)
+    {
+        std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
+        std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size() << std::endl;
+
+        // Print the rotation matrix and translation vector
+        Eigen::Matrix3f rotation = allTransformations[i].block<3, 3>(0, 0);
+        Eigen::Vector3f translation = allTransformations[i].block<3, 1>(0, 3);
+
+        printf("\n");
+        printf("            | %6.3f %6.3f %6.3f | \n", rotation(0, 0), rotation(0, 1), rotation(0, 2));
+        printf("        R = | %6.3f %6.3f %6.3f | \n", rotation(1, 0), rotation(1, 1), rotation(1, 2));
+        printf("            | %6.3f %6.3f %6.3f | \n", rotation(2, 0), rotation(2, 1), rotation(2, 2));
+        printf("\n");
+        printf("        t = < %0.3f, %0.3f, %0.3f >\n", translation(0), translation(1), translation(2));
+    }
+
+    // ----------------------- Visualisierung -----------------------
+
+    pcl::visualization::PCLVisualizer viewer("Correspondence Grouping");
+    viewer.addCoordinateSystem(0.1);
+    viewer.addPointCloud(scene, "scene_cloud");
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints(new pcl::PointCloud<pcl::PointXYZ>());
+
+    if (showingCorresopences)
+    {
+        //  We are translating the model so that it doesn't end in the middle of the scene representation
+        pcl::transformPointCloud(*model, *off_scene_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+        pcl::transformPointCloud(*model_keypoints, *off_scene_model_keypoints, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> off_scene_model_color_handler(off_scene_model, 255, 255, 128);
+        viewer.addPointCloud(off_scene_model, off_scene_model_color_handler, "off_scene_model");
+    }
+
+    for (int i = 0; i < allTransformations.size(); i++)
+    {
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr rotated_model(new pcl::PointCloud<pcl::PointXYZ>());
+        pcl::transformPointCloud(*model, *rotated_model, allTransformations[i]);
+
+        std::stringstream ss_cloud;
+        ss_cloud << "instance" << i;
+
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> rotated_model_color_handler(rotated_model, 255, 0, 0);
+        viewer.addPointCloud(rotated_model, rotated_model_color_handler, ss_cloud.str());
+
+        if (showingCorresopences)
+        {
+            for (int j = 0; j < clustered_corrs[i].size(); j++)
+            {
+                std::stringstream ss_line;
+                ss_line << "correspondence_line" << i << "_" << j;
+
+                pcl::PointXYZ &model_point = off_scene_model_keypoints->at(clustered_corrs[i][j].index_query);
+                pcl::PointXYZ &scene_point = scene_keypoints->at(clustered_corrs[i][j].index_match);
+
+                //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
+                viewer.addLine<pcl::PointXYZ, pcl::PointXYZ>(model_point, scene_point, 0, 255, 0, ss_line.str());
+            }
+        }
+    }
+
+    while (!viewer.wasStopped())
+    {
+        viewer.spinOnce();
+    }
+
+    return 0;
 }
