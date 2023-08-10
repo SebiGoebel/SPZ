@@ -31,6 +31,8 @@
 #define objectWidth 0.055   // m
 #define objectHight 0.016   // m
 
+#define resizingModel true
+
 #define resizingWithCalculatedRatio true // [true/false]
                                          // true  --> resizing factor for the object will be callculated based on Object-Abmessungen
                                          // false --> resizing factor is [scalingFactorForResizingObject]
@@ -231,60 +233,64 @@ int main(int argc, char **argv)
 
   // ---------------- resizing the model ----------------
 
-  if (resizingWithCalculatedRatio)
+  if (resizingModel)
   {
-    pcl::console::print_highlight("Calculating Scalingfactor...\n");
 
-    // computing the cloud diameter from the object
-    double diameter_beforeResizing = computeCloudDiameter(object, 1.0);
-    std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
-
-    // computing the diameter from the real object using abmessungen
-    double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
-    std::cout << "Object abmessungen diameter: " << diameterAbmessung << std::endl;
-
-    // calculating the scaling ratio
-    double scalingRatio = diameterAbmessung / diameter_beforeResizing;
-    pcl::console::print_highlight("Scalingfactor: %f\n", scalingRatio);
-
-    // actual resizing
-    pcl::console::print_highlight("Resizing Object...\n");
-
-    for (auto &point : *(object))
+    if (resizingWithCalculatedRatio)
     {
-      point.x *= scalingRatio;
-      point.y *= scalingRatio;
-      point.z *= scalingRatio;
+      pcl::console::print_highlight("Calculating Scalingfactor...\n");
+
+      // computing the cloud diameter from the object
+      double diameter_beforeResizing = computeCloudDiameter(object, 1.0);
+      std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
+
+      // computing the diameter from the real object using abmessungen
+      double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+      std::cout << "Object abmessungen diameter: " << diameterAbmessung << std::endl;
+
+      // calculating the scaling ratio
+      double scalingRatio = diameterAbmessung / diameter_beforeResizing;
+      pcl::console::print_highlight("Scalingfactor: %f\n", scalingRatio);
+
+      // actual resizing
+      pcl::console::print_highlight("Resizing Object...\n");
+
+      for (auto &point : *(object))
+      {
+        point.x *= scalingRatio;
+        point.y *= scalingRatio;
+        point.z *= scalingRatio;
+      }
+
+      // computing the diameter for checking
+      double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
+      std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+      std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+    }
+    else
+    {
+      pcl::console::print_highlight("Manual Scalingfactor: %f \n", scalingFactorForResizingObject);
+
+      // resizing with manually set factor
+      pcl::console::print_highlight("Resizing Object...\n");
+
+      for (auto &point : *(object))
+      {
+        point.x *= scalingFactorForResizingObject;
+        point.y *= scalingFactorForResizingObject;
+        point.z *= scalingFactorForResizingObject;
+      }
+
+      // computing the diameter for checking
+      double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
+      std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+      double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+      std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
     }
 
-    // computing the diameter for checking
-    double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
-    std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
-    std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+    // visualizing resized model
+    littleViewerPointNormal("resized model", object);
   }
-  else
-  {
-    pcl::console::print_highlight("Manual Scalingfactor: %f \n", scalingFactorForResizingObject);
-
-    // resizing with manually set factor
-    pcl::console::print_highlight("Resizing Object...\n");
-
-    for (auto &point : *(object))
-    {
-      point.x *= scalingFactorForResizingObject;
-      point.y *= scalingFactorForResizingObject;
-      point.z *= scalingFactorForResizingObject;
-    }
-
-    // computing the diameter for checking
-    double diameterCheck_cloud = computeCloudDiameter(object, 0.005);
-    std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
-    double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
-    std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
-  }
-
-  // visualizing resized model
-  littleViewerPointNormal("resized model", object);
 
   // Übernehmen der zentrierten und verkleinerten punktwolke
   pcl::copyPointCloud(*object, *object_copy);
