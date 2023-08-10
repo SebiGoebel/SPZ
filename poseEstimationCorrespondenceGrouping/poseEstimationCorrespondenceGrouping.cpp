@@ -294,6 +294,9 @@ int main()
     // turning 180° um y
     // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
 
+    // turning 90° um z
+    //pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071068, 0, 0, 0.7071068));
+
     // visualizing centered model
     littleViewer("centered model", model);
 
