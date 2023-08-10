@@ -37,14 +37,16 @@
 // ___INPUT:___
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
-//#define filename_pcd_scene "../data/pointcloud_1_down.pcd"
-//#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
+// #define filename_pcd_scene "../data/pointcloud_1_down.pcd"
+// #define filename_pcd_scene "../data/pointcloud_1_up.pcd"
 #define filename_pcd_scene "../data/pointcloud_1_up.pcd"
-//#define filename_pcd_scene "../data/pointcloud_2.pcd"
-// #define filename_pcd_scene "../data/pointcloud_3.pcd"
-// #define filename_pcd_scene "../data/pointcloud_6.pcd"
+// #define filename_pcd_scene "../data/pointcloud_2.pcd"
+//  #define filename_pcd_scene "../data/pointcloud_3.pcd"
+//  #define filename_pcd_scene "../data/pointcloud_6.pcd"
 #define filename_pcd_model "../data/teil_aufgenommen_up.pcd"
 // #define filename_pcd_model "../data/teil_leafSize5.pcd"
+
+#define resizingModel false
 
 // ___RESIZING MODEL:___
 
@@ -145,6 +147,18 @@ void littleViewerPointNormal(const char *windowTitle, const pcl::PointCloud<pcl:
     }
 }
 
+bool spaceKeyPressed = false;
+bool coordinateSystemsAreShown = false;
+void keyboardEventOccurred(const pcl::visualization::KeyboardEvent &event, void *viewer_void)
+{
+    // pcl::visualization::PCLVisualizer *viewer = static_cast<pcl::visualization::PCLVisualizer *>(viewer_void);
+    if (event.getKeySym() == "space" && event.keyDown())
+    {
+        std::cout << "space was pressed ";
+        spaceKeyPressed = true;
+    }
+}
+
 void comparisonViewer(const char *windowTitle, std::string text1, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud1, std::string text2, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud2)
 {
     // Terminal message
@@ -227,67 +241,70 @@ int main()
 
     pcl::transformPointCloud(*cloud_model, *cloud_model, transform_centering);
     // turning 180° um y
-    //pcl::transformPointCloud(*cloud_model, *cloud_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
+    // pcl::transformPointCloud(*cloud_model, *cloud_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
 
     // visualizing centered model
     littleViewer("centered model", cloud_model);
 
     // ---------------- resizing the model ----------------
-/*
-    if (resizingWithCalculatedRatio)
+    if (resizingModel)
     {
-        pcl::console::print_highlight("Calculating Scalingfactor...\n");
 
-        // computing the cloud diameter from the object
-        double diameter_beforeResizing = computeCloudDiameter(cloud_model, 1.0);
-        std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
-
-        // computing the diameter from the real object using abmessungen
-        double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
-        std::cout << "Object abmessungen diameter: " << diameterAbmessung << std::endl;
-
-        // calculating the scaling ratio
-        double scalingRatio = diameterAbmessung / diameter_beforeResizing;
-        pcl::console::print_highlight("Scalingfactor: %f\n", scalingRatio);
-
-        // actual resizing
-        pcl::console::print_highlight("Resizing Object...\n");
-
-        for (auto &point : *(cloud_model))
+        if (resizingWithCalculatedRatio)
         {
-            point.x *= scalingRatio;
-            point.y *= scalingRatio;
-            point.z *= scalingRatio;
+            pcl::console::print_highlight("Calculating Scalingfactor...\n");
+
+            // computing the cloud diameter from the object
+            double diameter_beforeResizing = computeCloudDiameter(cloud_model, 1.0);
+            std::cout << "Object cloud diameter: " << diameter_beforeResizing << std::endl;
+
+            // computing the diameter from the real object using abmessungen
+            double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+            std::cout << "Object abmessungen diameter: " << diameterAbmessung << std::endl;
+
+            // calculating the scaling ratio
+            double scalingRatio = diameterAbmessung / diameter_beforeResizing;
+            pcl::console::print_highlight("Scalingfactor: %f\n", scalingRatio);
+
+            // actual resizing
+            pcl::console::print_highlight("Resizing Object...\n");
+
+            for (auto &point : *(cloud_model))
+            {
+                point.x *= scalingRatio;
+                point.y *= scalingRatio;
+                point.z *= scalingRatio;
+            }
+
+            // computing the diameter for checking
+            double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
+            std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+            std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+        }
+        else
+        {
+            pcl::console::print_highlight("Manual Scalingfactor: %f \n", scalingFactorForResizingObject);
+
+            // resizing with manually set factor
+            pcl::console::print_highlight("Resizing Model...\n");
+
+            for (auto &point : *(cloud_model))
+            {
+                point.x *= scalingFactorForResizingObject;
+                point.y *= scalingFactorForResizingObject;
+                point.z *= scalingFactorForResizingObject;
+            }
+
+            // computing the diameter for checking
+            double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
+            std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
+            double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
+            std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
         }
 
-        // computing the diameter for checking
-        double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
-        std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
-        std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
+        // visualizing resized model
+        littleViewer("resized model", cloud_model);
     }
-    else
-    {
-        pcl::console::print_highlight("Manual Scalingfactor: %f \n", scalingFactorForResizingObject);
-
-        // resizing with manually set factor
-        pcl::console::print_highlight("Resizing Model...\n");
-
-        for (auto &point : *(cloud_model))
-        {
-            point.x *= scalingFactorForResizingObject;
-            point.y *= scalingFactorForResizingObject;
-            point.z *= scalingFactorForResizingObject;
-        }
-
-        // computing the diameter for checking
-        double diameterCheck_cloud = computeCloudDiameter(cloud_model, 0.005);
-        std::cout << "Diameter check from cloud: " << diameterCheck_cloud << std::endl;
-        double diameterAbmessung = computeObjectDiameter(objectLenght, objectWidth, objectHight);
-        std::cout << "Expected diameter: " << (diameterAbmessung - 0.003) << std::endl; // -0.003 wegen Abrundung in der Kurve die die Diagonale verringert
-    }
-*/
-    // visualizing resized model
-    littleViewer("resized model", cloud_model);
 
     // Übernehmen der zentrierten und verkleinerten punktwolke
     pcl::copyPointCloud(*cloud_model, *cloud_model_copy);
@@ -639,8 +656,6 @@ int main()
     viewer_resultVergleicher.addPointCloud(cloud_scene, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene, 0.0, 255.0, 0.0), "scene_prepared_vergleich");
     viewer_resultVergleicher.addPointCloud(cloud_transformed, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed, 255.0, 0.0, 0.0), "model_transformed_prepared_vergleich");
 
-    viewer_resultVergleicher.addCoordinateSystem(0.1);
-
     while (!viewer_resultVergleicher.wasStopped())
     {
         viewer_resultVergleicher.spinOnce();
@@ -698,6 +713,7 @@ int main()
     pcl::visualization::PCLVisualizer viewer_resultVergleicher_icp("PPF Object Recognition - Results - After ICP");
     viewer_resultVergleicher_icp.addCoordinateSystem(0.1);
     viewer_resultVergleicher_icp.initCameraParameters();
+    viewer_resultVergleicher_icp.registerKeyboardCallback(keyboardEventOccurred, (void *)&viewer_resultVergleicher_icp);
 
     int v1_icp(0);
     viewer_resultVergleicher_icp.createViewPort(0.0, 0.0, 0.5, 1.0, v1_icp);
@@ -713,11 +729,70 @@ int main()
     viewer_resultVergleicher_icp.addPointCloud(cloud_scene, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_scene, 0.0, 255.0, 0.0), "scene_prepared_vergleich_icp");
     viewer_resultVergleicher_icp.addPointCloud(cloud_transformed_icp, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(cloud_transformed_icp, 255.0, 0.0, 0.0), "model_transformed_prepared_vergleich_icp");
 
-    viewer_resultVergleicher_icp.addCoordinateSystem(0.1);
-
     while (!viewer_resultVergleicher_icp.wasStopped())
     {
         viewer_resultVergleicher_icp.spinOnce();
+        
+        if (spaceKeyPressed)
+        {
+            if (!coordinateSystemsAreShown)
+            {
+                // show CoordinateSystem
+                // converting Eigen::Matrix4f to Eigen::Affine3f
+                Eigen::Affine3f transformationVisualization_icp;
+                transformationVisualization_icp = transformation_icp;
+
+                Eigen::Affine3f transformationVisualisation;
+                transformationVisualisation = transformation;
+
+                Eigen::Affine3f combinedTransformation = transformationVisualization_icp * transformationVisualisation;
+
+                // addCoordinateSystem(double scale, Eigen::Affine3f& tranform, std::string& id, int viewport)
+                viewer_resultVergleicher_icp.addCoordinateSystem(0.1, combinedTransformation, "v1_icp object_pose", v1_icp);
+                viewer_resultVergleicher_icp.addCoordinateSystem(0.1, "v1_icp camera_pose", v1_icp);
+
+                viewer_resultVergleicher_icp.addCoordinateSystem(0.1, combinedTransformation, "v2_icp object_pose", v2_icp);
+                viewer_resultVergleicher_icp.addCoordinateSystem(0.1, "v2_icp camera_pose", v2_icp);
+
+                // added Text
+                // addText3D(std::string& text, Point& position, double scale, double r, double g, double b, std::string& id, int viewport)
+                pcl::PointXYZ origin_camera;
+                origin_camera.x = 0.0 - 0.01;
+                origin_camera.y = 0.0 + 0.02;
+                origin_camera.z = 0.0;
+                // double orientation_camera[3];
+                // orientation_camera[0] = 0.0;
+                // orientation_camera[1] = 0.0;
+                // orientation_camera[2] = 0.0;
+                viewer_resultVergleicher_icp.addText3D("Camera", origin_camera, 0.01, 1.0, 1.0, 1.0, "v1_icp camera_text", v1_icp);
+                viewer_resultVergleicher_icp.addText3D("Camera", origin_camera, 0.01, 1.0, 1.0, 1.0, "v2_icp camera_text", v2_icp);
+
+                pcl::PointXYZ origin_object;
+                origin_object.x = combinedTransformation(0, 3) - 0.01;
+                origin_object.y = combinedTransformation(1, 3) + 0.02;
+                origin_object.z = combinedTransformation(2, 3);
+                viewer_resultVergleicher_icp.addText3D("Object", origin_object, 0.01, 1.0, 1.0, 1.0, "v1_icp object_text", v1_icp);
+                viewer_resultVergleicher_icp.addText3D("Object", origin_object, 0.01, 1.0, 1.0, 1.0, "v2_icp object_text", v2_icp);
+
+                coordinateSystemsAreShown = true;
+                std::cout << "=> added Coordinatesystems" << std::endl;
+            }
+            else
+            {
+                viewer_resultVergleicher_icp.removeText3D("v1_icp camera_text", v1_icp);
+                viewer_resultVergleicher_icp.removeText3D("v1_icp object_text", v1_icp);
+
+                viewer_resultVergleicher_icp.removeText3D("v2_icp camera_text", v2_icp);
+                viewer_resultVergleicher_icp.removeText3D("v2_icp object_text", v2_icp);
+
+                viewer_resultVergleicher_icp.removeAllCoordinateSystems();
+                coordinateSystemsAreShown = false;
+                std::cout << "=> removed Coordinatesystems" << std::endl;
+            }
+
+            spaceKeyPressed = false;
+        }
+        
     }
 
     return 0;
