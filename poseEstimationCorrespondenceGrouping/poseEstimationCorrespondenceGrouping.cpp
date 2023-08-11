@@ -31,6 +31,10 @@
 // SHOT Descriptors:
 #include <pcl/features/shot_omp.h>
 
+// Hough Clustering
+#include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/features/board.h>
+
 // Geometric Clustering
 #include <pcl/recognition/cg/geometric_consistency.h>
 
@@ -60,6 +64,8 @@
 
 // ___RESIZING MODEL:___
 
+#define resizingModel false
+
 // Object-Abmessungen
 #define objectLenght 0.1238 // m
 #define objectWidth 0.055   // m
@@ -71,8 +77,6 @@
 
 #define scalingFactorForResizingObject 0.001 // resizing factor for manual resizing
 
-#define resizingModel false
-
 // ___UNIFORM SAMPLING:___
 #define uniformSamplingSearchRadiusModel 0.002f
 // 0.002f --> ohne VoxelGrid
@@ -81,41 +85,35 @@
 // 0.006f --> ohne VoxelGrid
 
 // ___DESCRIPTORS WITH SHOT:___
-#define descriptorRadius 0.004f
+#define descriptorRadius 0.006f // 0.006f
 // 0.004f --> ohne VoxelGrid
 
 // ___CLUSTERING:___
-#define clusteringSize 0.01f
-// 0.1f --> ohne VoxelGrid
+#define usingHough false
+#define referenceFrameRadius 0.004f // is only needed when usingHough == true
+#define clusteringSize 0.01f // 0.01
+// 0.1f --> ohne VoxelGrid mit Geometric Clustering
 
-#define clusteringTH 10.0f
-// 11.0f --> ohne VoxelGrid
+#define clusteringTH 5.0f
+// 11.0f --> ohne VoxelGrid mit Geometric Clustering
 
 // ____ICP:___
-#define icpMaxIterations 150
+#define icpMaxIterations 15
 #define icpCorrespondenceDistance 0.005f
 
 // ___poseHypothesisVerification:____
 
 #define poseHypothesisVerification true // [true/false] --> decides if pose Hypothesis Verification should be done
 
-#define hvResolution 0.005f
-#define hvOccupancyGridResolution 0.01f
-#define hvClutterRegularizer 5.0f
-#define hvInlierTH 0.005f
-#define hvOcclusionTH 0.01f
-#define hvClutterRadius 0.03f
-#define hvRegulizer 3.0f
-#define hvNormalRadius 0.05
+#define hvResolution 0.005f              // Tutorial: 0.005f
+#define hvOccupancyGridResolution 0.01f  // Tutorial: 0.01
+#define hvClutterRegularizer 5.0f        // default: 5.0
+#define hvInlierTH 0.005f                // default: 0.005
+#define hvOcclusionTH 0.01f              // default: 0.01
+#define hvClutterRadius 0.03f            // default: 0.03
+#define hvRegulizer 3.0f                 // default: 3.0
+#define hvNormalRadius 0.05              // default: 0.05
 #define hvDetectClutter true
-//float hv_occupancy_grid_resolution_(0.01f);
-//float hv_clutter_reg_(5.0f);
-//float hv_inlier_th_(0.005f);
-//float hv_occlusion_th_(0.01f);
-//float hv_rad_clutter_(0.03f);
-//float hv_regularizer_(3.0f);
-//float hv_rad_normals_(0.05);
-//bool hv_detect_clutter_(true);
 
 // ___VOXEL GRID:___
 #define withVoxelGrid false      // mit VoxelGrid funktioniert das garnicht !!!
@@ -576,16 +574,57 @@ int main()
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> allTransformations;
     std::vector<pcl::Correspondences> clustered_corrs;
 
-    pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> gc_clusterer;
-    gc_clusterer.setGCSize(clusteringSize);
-    gc_clusterer.setGCThreshold(clusteringTH);
+    if (usingHough)
+    {
+        //
+        //  Compute (Keypoints) Reference Frames only for Hough
+        //
+        pcl::PointCloud<pcl::ReferenceFrame>::Ptr model_rf(new pcl::PointCloud<pcl::ReferenceFrame>());
+        pcl::PointCloud<pcl::ReferenceFrame>::Ptr scene_rf(new pcl::PointCloud<pcl::ReferenceFrame>());
 
-    gc_clusterer.setInputCloud(model_keypoints);
-    gc_clusterer.setSceneCloud(scene_keypoints);
-    gc_clusterer.setModelSceneCorrespondences(model_scene_corrs);
+        pcl::BOARDLocalReferenceFrameEstimation<pcl::PointXYZ, pcl::Normal, pcl::ReferenceFrame> rf_est;
+        rf_est.setFindHoles(true);
+        rf_est.setRadiusSearch(referenceFrameRadius);
 
-    // gc_clusterer.cluster (clustered_corrs);
-    gc_clusterer.recognize(allTransformations, clustered_corrs);
+        rf_est.setInputCloud(model_keypoints);
+        rf_est.setInputNormals(model_normals);
+        rf_est.setSearchSurface(model);
+        rf_est.compute(*model_rf);
+
+        rf_est.setInputCloud(scene_keypoints);
+        rf_est.setInputNormals(scene_normals);
+        rf_est.setSearchSurface(scene);
+        rf_est.compute(*scene_rf);
+
+        //  Clustering
+        pcl::Hough3DGrouping<pcl::PointXYZ, pcl::PointXYZ, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
+        clusterer.setHoughBinSize(clusteringSize);
+        clusterer.setHoughThreshold(clusteringTH);
+        clusterer.setUseInterpolation(true);
+        clusterer.setUseDistanceWeight(false);
+
+        clusterer.setInputCloud(model_keypoints);
+        clusterer.setInputRf(model_rf);
+        clusterer.setSceneCloud(scene_keypoints);
+        clusterer.setSceneRf(scene_rf);
+        clusterer.setModelSceneCorrespondences(model_scene_corrs);
+
+        // clusterer.cluster (clustered_corrs);
+        clusterer.recognize(allTransformations, clustered_corrs);
+    }
+    else
+    {
+        pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> gc_clusterer;
+        gc_clusterer.setGCSize(clusteringSize);
+        gc_clusterer.setGCThreshold(clusteringTH);
+
+        gc_clusterer.setInputCloud(model_keypoints);
+        gc_clusterer.setSceneCloud(scene_keypoints);
+        gc_clusterer.setModelSceneCorrespondences(model_scene_corrs);
+
+        // gc_clusterer.cluster (clustered_corrs);
+        gc_clusterer.recognize(allTransformations, clustered_corrs);
+    }
 
     // ----------------------- Stop if no instances where found -----------------------
 
@@ -766,10 +805,14 @@ int main()
 
         std::cout << "----------------------" << std::endl;
 
+        //std::cout << "hypotheses_mask.size: " << hypotheses_mask.size() << std::endl;
+        //std::cout << "instances.size: " << instances.size() << std::endl;
+
         // ----------------------- Visualizing after Hypothesis Verification -----------------------
 
         pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
-        viewer_hv.addPointCloud(scene, "scene_cloud");
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
+        viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_hv(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints_hv(new pcl::PointCloud<pcl::PointXYZ>());
@@ -786,20 +829,20 @@ int main()
 
             // All instances in red
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> instance_color_handler(instances[i], 255, 0, 0); // red
-            viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
+            //viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
 
             // if verification is good change color to green
             ss_instance << "_registered" << std::endl;
             if (hypotheses_mask[i])
             {
                 pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 0); // green
-                viewer.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
+                viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
             }
             else
             {
                 // change color to cyan
                 pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 255); // cyan - türkis
-                viewer.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
+                viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
             }
         }
 
