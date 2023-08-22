@@ -59,8 +59,12 @@
 #define filename_pcd_model "../data/aufgenommen/teil_aufgenommen_up.pcd"
 
 // test
-// #define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
-// #define filename_pcd_model "../data/milk.pcd"
+//#define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
+//#define filename_pcd_model "../data/milk.pcd"
+
+// ___CENTERING MODEL:___
+
+#define centeringModel true
 
 // ___RESIZING MODEL:___
 
@@ -77,43 +81,48 @@
 
 #define scalingFactorForResizingObject 0.001 // resizing factor for manual resizing
 
+// ___NORMAL ESTIMATION:___
+#define pointNeighborsNormalEstimation 10 // ist die anzahl an nachbar Punkten die für eine Normal Estimation verwendet werden sollen
+                                          // Tutorial: 10
 // ___UNIFORM SAMPLING:___
-#define uniformSamplingSearchRadiusModel 0.002f
+#define uniformSamplingSearchRadiusModel 0.002f//0.002f
 // 0.002f --> ohne VoxelGrid
 
-#define uniformSamplingSearchRadiusScene 0.006f
+#define uniformSamplingSearchRadiusScene 0.006f//0.006f
 // 0.006f --> ohne VoxelGrid
 
 // ___DESCRIPTORS WITH SHOT:___
-#define descriptorRadius 0.006f // 0.006f
+#define descriptorRadius 0.006f//0.006f // 0.006f
 // 0.004f --> ohne VoxelGrid
 
 // ___CLUSTERING:___
 #define usingHough false
 #define referenceFrameRadius 0.004f // is only needed when usingHough == true
-#define clusteringSize 0.01f // 0.01
+
+#define clusteringSize 0.01f        // wie groß soll der Bereich sein der geclustert werden soll in Meter
+                                    // 0.01 => 1 cm
 // 0.1f --> ohne VoxelGrid mit Geometric Clustering
 
 #define clusteringTH 5.0f
 // 11.0f --> ohne VoxelGrid mit Geometric Clustering
 
 // ____ICP:___
-#define icpMaxIterations 15
-#define icpCorrespondenceDistance 0.005f
+#define icpMaxIterations 30
+#define icpCorrespondenceDistance 0.02f//0.005f
 
 // ___poseHypothesisVerification:____
 
 #define poseHypothesisVerification true // [true/false] --> decides if pose Hypothesis Verification should be done
 
-#define hvResolution 0.005f              // Tutorial: 0.005f
-#define hvOccupancyGridResolution 0.01f  // Tutorial: 0.01
-#define hvClutterRegularizer 5.0f        // default: 5.0
-#define hvInlierTH 0.005f                // default: 0.005
-#define hvOcclusionTH 0.01f              // default: 0.01
-#define hvClutterRadius 0.03f            // default: 0.03
-#define hvRegulizer 3.0f                 // default: 3.0
-#define hvNormalRadius 0.05              // default: 0.05
-#define hvDetectClutter true
+#define hvResolution 0.005f             // Tutorial: 0.005f
+#define hvOccupancyGridResolution 0.01f // Tutorial: 0.01
+#define hvClutterRegularizer 5.0f       // default: 5.0
+#define hvInlierTH 0.005f               // default: 0.005
+#define hvOcclusionTH 0.01f             // default: 0.01
+#define hvClutterRadius 0.03f           // default: 0.03
+#define hvRegulizer 3.0f                // default: 3.0
+#define hvNormalRadius 0.05             // default: 0.05
+#define hvDetectClutter true            // Tutorial: true
 
 // ___VOXEL GRID:___
 #define withVoxelGrid false      // mit VoxelGrid funktioniert das garnicht !!!
@@ -306,6 +315,13 @@ int main()
         return (-1);
     }
 
+    // resolution
+    float resolution_1 = static_cast<float>(computeCloudResolution(model));
+    std::cout << "Model resolution:       " << resolution_1 << std::endl;
+
+    float resolution_1_scene = static_cast<float>(computeCloudResolution(scene));
+    std::cout << "Scene resolution:       " << resolution_1_scene << std::endl;
+
     // visualizing input clouds
     comparisonViewer("Input Clouds", "Model", model, "Scene", scene);
 
@@ -313,24 +329,34 @@ int main()
 
     // ---------------- centering the model ----------------
 
-    pcl::console::print_highlight("Centering Model...\n");
+    if (centeringModel)
+    {
+        pcl::console::print_highlight("Centering Model...\n");
 
-    Eigen::Vector3d sum_of_pos = Eigen::Vector3d::Zero();
-    for (const auto &p : *(model))
-        sum_of_pos += p.getVector3fMap().cast<double>();
+        Eigen::Vector3d sum_of_pos = Eigen::Vector3d::Zero();
+        for (const auto &p : *(model))
+            sum_of_pos += p.getVector3fMap().cast<double>();
 
-    Eigen::Matrix4d transform_centering = Eigen::Matrix4d::Identity();
-    transform_centering.topRightCorner<3, 1>() = -sum_of_pos / model->size();
+        Eigen::Matrix4d transform_centering = Eigen::Matrix4d::Identity();
+        transform_centering.topRightCorner<3, 1>() = -sum_of_pos / model->size();
 
-    pcl::transformPointCloud(*model, *model, transform_centering);
-    // turning 180° um y
-    // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
+        pcl::transformPointCloud(*model, *model, transform_centering);
+        // turning 180° um y
+        // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 1, 0, 0));
 
-    // turning 90° um z
-    // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071068, 0, 0, 0.7071068));
+        // turning 90° um z
+        // pcl::transformPointCloud(*model, *model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0.7071068, 0, 0, 0.7071068));
 
-    // visualizing centered model
-    littleViewer("centered model", model);
+        // visualizing centered model
+        littleViewer("centered model", model);
+    }
+
+    // -------------- moving model down --------------
+
+    //for (auto &point : *(model))
+    //{
+    //    point.z -= 0.005;
+    //}
 
     // ---------------- resizing the model ----------------
 
@@ -490,7 +516,7 @@ int main()
     pcl::console::print_highlight("Estimating Normals...\n");
 
     pcl::NormalEstimationOMP<pcl::PointXYZ, pcl::Normal> norm_est;
-    norm_est.setKSearch(10);
+    norm_est.setKSearch(pointNeighborsNormalEstimation); // 10
     norm_est.setInputCloud(model);
     norm_est.compute(*model_normals);
 
@@ -659,6 +685,18 @@ int main()
         printf("        t = < %0.3f, %0.3f, %0.3f >\n", translation(0), translation(1), translation(2));
     }
 
+    // filtering model with most correspondence
+    int highestChecker = 0;
+    int indexChecker = -1;
+    for(int i = 0; i < allTransformations.size(); i++){
+        if(clustered_corrs[i].size() > highestChecker){
+            highestChecker = clustered_corrs[i].size();
+            indexChecker = i;
+        }
+    }
+    std::cout << "highestChecker = " << highestChecker << std::endl;
+    std::cout << "indexChecker = " << indexChecker << std::endl;
+
     // ----------------------- Visualisierung von allen instances -----------------------
 
     pcl::console::print_highlight("Visualising Results of all found Instances...\n");
@@ -805,8 +843,8 @@ int main()
 
         std::cout << "----------------------" << std::endl;
 
-        //std::cout << "hypotheses_mask.size: " << hypotheses_mask.size() << std::endl;
-        //std::cout << "instances.size: " << instances.size() << std::endl;
+        // std::cout << "hypotheses_mask.size: " << hypotheses_mask.size() << std::endl;
+        // std::cout << "instances.size: " << instances.size() << std::endl;
 
         // ----------------------- Visualizing after Hypothesis Verification -----------------------
 
@@ -829,7 +867,7 @@ int main()
 
             // All instances in red
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> instance_color_handler(instances[i], 255, 0, 0); // red
-            //viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
+            // viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
 
             // if verification is good change color to green
             ss_instance << "_registered" << std::endl;
