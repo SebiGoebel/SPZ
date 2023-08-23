@@ -403,7 +403,9 @@ CMakeFiles/poseEstimationPPF.dir/poseEstimationPPF.cpp.o
  /usr/local/include/pcl-1.13/pcl/filters/impl/extract_indices.hpp
  /usr/local/include/pcl-1.13/pcl/filters/impl/filter.hpp
  /usr/local/include/pcl-1.13/pcl/filters/impl/filter_indices.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/impl/passthrough.hpp
  /usr/local/include/pcl-1.13/pcl/filters/impl/voxel_grid.hpp
+ /usr/local/include/pcl-1.13/pcl/filters/passthrough.h
  /usr/local/include/pcl-1.13/pcl/filters/voxel_grid.h
  /usr/local/include/pcl-1.13/pcl/for_each_type.h
  /usr/local/include/pcl-1.13/pcl/impl/cloud_iterator.hpp

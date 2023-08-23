@@ -9,6 +9,9 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+// pass through filter
+#include <pcl/filters/passthrough.h>
+
 #include <thread>
 
 using namespace pcl;
@@ -95,7 +98,7 @@ int main(int argc, char **argv)
 
     // ----------------------------------------------- hier war der plane remover -----------------------------------------------
     // ---------------- removing plane ----------------
-/*
+
     pcl::SACSegmentation<pcl::PointXYZ> seg;
     pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
     seg.setOptimizeCoefficients(true);
@@ -120,9 +123,29 @@ int main(int argc, char **argv)
         extract_plane.setIndices(inliers_plane);
         extract_plane.filter(*cloud_scene);
     }
-*/
+
     // Visualization
     littleViewer("input scene", cloud_scene);
+
+    // ---------------- removing walls ----------------
+
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pass.setInputCloud(cloud_scene);
+
+    // X:
+    pass.setFilterFieldName("x");
+    pass.setFilterLimits(-0.15, 0.165);
+    // pass.setNegative (true);
+    pass.filter(*cloud_scene);
+
+    // Y:
+    pass.setFilterFieldName("y");
+    pass.setFilterLimits(-0.09, 0.1);
+    // pass.setNegative (true);
+    pass.filter(*cloud_scene);
+
+    // visualizing cloud after wall removing
+    littleViewer("walls removed", cloud_scene);
 
     // ----------------------- preparing clouds -----------------------
 
