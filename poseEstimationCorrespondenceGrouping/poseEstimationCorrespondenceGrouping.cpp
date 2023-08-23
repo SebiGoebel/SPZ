@@ -59,8 +59,8 @@
 #define filename_pcd_model "../data/aufgenommen/teil_aufgenommen_up.pcd"
 
 // test
-//#define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
-//#define filename_pcd_model "../data/milk.pcd"
+// #define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
+// #define filename_pcd_model "../data/milk.pcd"
 
 // ___CENTERING MODEL:___
 
@@ -85,22 +85,22 @@
 #define pointNeighborsNormalEstimation 10 // ist die anzahl an nachbar Punkten die für eine Normal Estimation verwendet werden sollen
                                           // Tutorial: 10
 // ___UNIFORM SAMPLING:___
-#define uniformSamplingSearchRadiusModel 0.002f//0.002f
+#define uniformSamplingSearchRadiusModel 0.002f // 0.002f
 // 0.002f --> ohne VoxelGrid
 
-#define uniformSamplingSearchRadiusScene 0.006f//0.006f
+#define uniformSamplingSearchRadiusScene 0.006f // 0.006f
 // 0.006f --> ohne VoxelGrid
 
 // ___DESCRIPTORS WITH SHOT:___
-#define descriptorRadius 0.006f//0.006f // 0.006f
+#define descriptorRadius 0.006f // 0.006f // 0.006f
 // 0.004f --> ohne VoxelGrid
 
 // ___CLUSTERING:___
 #define usingHough false
 #define referenceFrameRadius 0.004f // is only needed when usingHough == true
 
-#define clusteringSize 0.01f        // wie groß soll der Bereich sein der geclustert werden soll in Meter
-                                    // 0.01 => 1 cm
+#define clusteringSize 0.01f // wie groß soll der Bereich sein der geclustert werden soll in Meter
+                             // 0.01 => 1 cm
 // 0.1f --> ohne VoxelGrid mit Geometric Clustering
 
 #define clusteringTH 5.0f
@@ -108,21 +108,22 @@
 
 // ____ICP:___
 #define icpMaxIterations 30
-#define icpCorrespondenceDistance 0.02f//0.005f
+#define icpCorrespondenceDistance 0.02375f // 0.005f
+                                          // 0.02375 = 2.5 * resolution
 
 // ___poseHypothesisVerification:____
 
 #define poseHypothesisVerification true // [true/false] --> decides if pose Hypothesis Verification should be done
 
-#define hvResolution 0.005f             // Tutorial: 0.005f
-#define hvOccupancyGridResolution 0.01f // Tutorial: 0.01
-#define hvClutterRegularizer 5.0f       // default: 5.0
-#define hvInlierTH 0.005f               // default: 0.005
-#define hvOcclusionTH 0.01f             // default: 0.01
-#define hvClutterRadius 0.03f           // default: 0.03
-#define hvRegulizer 3.0f                // default: 3.0
-#define hvNormalRadius 0.05             // default: 0.05
-#define hvDetectClutter true            // Tutorial: true
+#define hvResolution 0.002f               // Tutorial: 0.005f
+#define hvOccupancyGridResolution 0.0005f // Tutorial: 0.01
+#define hvClutterRegularizer 1.0f         // default: 5.0
+#define hvInlierTH 0.05f                  // default: 0.005
+#define hvOcclusionTH 0.1f                // default: 0.01
+#define hvClutterRadius 0.003f            // default: 0.03
+#define hvRegulizer 3.0f                  // default: 3.0
+#define hvNormalRadius 0.005              // default: 0.05
+#define hvDetectClutter false             // Tutorial: true
 
 // ___VOXEL GRID:___
 #define withVoxelGrid false      // mit VoxelGrid funktioniert das garnicht !!!
@@ -353,10 +354,10 @@ int main()
 
     // -------------- moving model down --------------
 
-    //for (auto &point : *(model))
+    // for (auto &point : *(model))
     //{
-    //    point.z -= 0.005;
-    //}
+    //     point.z -= 0.005;
+    // }
 
     // ---------------- resizing the model ----------------
 
@@ -688,8 +689,10 @@ int main()
     // filtering model with most correspondence
     int highestChecker = 0;
     int indexChecker = -1;
-    for(int i = 0; i < allTransformations.size(); i++){
-        if(clustered_corrs[i].size() > highestChecker){
+    for (int i = 0; i < allTransformations.size(); i++)
+    {
+        if (clustered_corrs[i].size() > highestChecker)
+        {
             highestChecker = clustered_corrs[i].size();
             indexChecker = i;
         }
@@ -779,12 +782,13 @@ int main()
     pcl::console::print_highlight("ICP...\n");
 
     std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> registered_instances;
+    std::vector<Eigen::Matrix4f> transformation_icp;
 
     for (int i = 0; i < allTransformations.size(); i++)
     {
         pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
         icp.setMaximumIterations(icpMaxIterations);
-        icp.setMaxCorrespondenceDistance(icpCorrespondenceDistance);
+        icp.setMaxCorrespondenceDistance(icpCorrespondenceDistance); // 2.5 * resolution // resolution = 0.0095
         icp.setInputTarget(scene);
         icp.setInputSource(instances[i]);
         pcl::PointCloud<pcl::PointXYZ>::Ptr registered(new pcl::PointCloud<pcl::PointXYZ>);
@@ -801,6 +805,7 @@ int main()
         {
             std::cout << "Not Aligned!" << std::endl;
         }
+        transformation_icp.push_back(icp.getFinalTransformation());
     }
 
     // ----------------------- Hypothesis Verification -----------------------
@@ -849,6 +854,7 @@ int main()
         // ----------------------- Visualizing after Hypothesis Verification -----------------------
 
         pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
+        viewer_hv.addCoordinateSystem(0.1);
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
         viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
 
@@ -868,6 +874,16 @@ int main()
             // All instances in red
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> instance_color_handler(instances[i], 255, 0, 0); // red
             // viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
+
+            // show CoordinateSystem
+            // converting Eigen::Matrix4f to Eigen::Affine3f
+            Eigen::Affine3f transformationVisualization_icp;
+            transformationVisualization_icp = transformation_icp[i] * allTransformations[i];
+
+            std::stringstream ss_coordinatesystem;
+            ss_coordinatesystem << "object_pose_" << i;
+
+            viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
 
             // if verification is good change color to green
             ss_instance << "_registered" << std::endl;
