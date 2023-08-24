@@ -49,13 +49,14 @@
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
 // #define filename_pcd_scene "../data/pointcloud_1_down.pcd"
 #define filename_pcd_scene "../data/pointcloud_1_up.pcd"
-// #define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
-//  #define filename_pcd_scene "../data/pointcloud_2.pcd"
+//#define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
+//#define filename_pcd_scene "../data/pointcloud_2.pcd"
 //   #define filename_pcd_scene "../data/pointcloud_3.pcd"
-//   #define filename_pcd_scene "../data/pointcloud_6.pcd"
-// #define filename_pcd_model "../data/teil_default.pcd"
-//  #define filename_pcd_model "../data/teil_leafSize5.pcd"
+//#define filename_pcd_scene "../data/pointcloud_6.pcd"
 
+
+//#define filename_pcd_model "../data/teil_default.pcd"
+//#define filename_pcd_model "../data/teil_leafSize5.pcd"
 #define filename_pcd_model "../data/aufgenommen/teil_aufgenommen_up.pcd"
 
 // test
@@ -68,7 +69,9 @@
 
 // ___RESIZING MODEL:___
 
-#define resizingModel false
+#define resizingModel false // [true/false]
+                            // true --> resizes model (!!! only works with CAD Model !!!)
+                            // false --> should be used when aufgenommene Models are used
 
 // Object-Abmessungen
 #define objectLenght 0.1238 // m
@@ -109,11 +112,13 @@
 // ____ICP:___
 #define icpMaxIterations 30
 #define icpCorrespondenceDistance 0.02375f // 0.005f
-                                          // 0.02375 = 2.5 * resolution
+                                           // 0.02375 = 2.5 * resolution
 
 // ___poseHypothesisVerification:____
 
-#define poseHypothesisVerification true // [true/false] --> decides if pose Hypothesis Verification should be done
+#define poseHypothesisVerification false // [true/false] --> decides if pose Hypothesis Verification should be done
+                                         // [true]  --> Global Hypotheses Verification is used
+                                         // [false] --> ICP lowest Fitness Score is used
 
 #define hvResolution 0.002f               // Tutorial: 0.005f
 #define hvOccupancyGridResolution 0.0005f // Tutorial: 0.01
@@ -123,7 +128,7 @@
 #define hvClutterRadius 0.003f            // default: 0.03
 #define hvRegulizer 3.0f                  // default: 3.0
 #define hvNormalRadius 0.005              // default: 0.05
-#define hvDetectClutter false             // Tutorial: true
+#define hvDetectClutter true              // Tutorial: true --> all good / false --> all bad
 
 // ___VOXEL GRID:___
 #define withVoxelGrid false      // mit VoxelGrid funktioniert das garnicht !!!
@@ -783,6 +788,7 @@ int main()
 
     std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> registered_instances;
     std::vector<Eigen::Matrix4f> transformation_icp;
+    std::vector<double> icp_scores;
 
     for (int i = 0; i < allTransformations.size(); i++)
     {
@@ -799,11 +805,14 @@ int main()
         std::cout << "Instance " << i << " ";
         if (icp.hasConverged())
         {
-            std::cout << "Aligned!" << std::endl;
+            std::cout << "Aligned!"
+                      << " --- ICP Fitness Score: " << icp.getFitnessScore() << std::endl;
+            icp_scores.push_back(icp.getFitnessScore());
         }
         else
         {
             std::cout << "Not Aligned!" << std::endl;
+            icp_scores.push_back(100.0);
         }
         transformation_icp.push_back(icp.getFinalTransformation());
     }
@@ -812,8 +821,10 @@ int main()
 
     if (poseHypothesisVerification)
     {
+        // ----------------------- Global Hypothesis Verification -----------------------
+
         std::cout << "----------------------" << std::endl;
-        pcl::console::print_highlight("Hypothesis Verification...\n");
+        pcl::console::print_highlight("Hypothesis Verification using Global Hypotheses Verification...\n");
 
         std::vector<bool> hypotheses_mask; // Mask Vector to identify positive hypotheses
 
@@ -879,10 +890,8 @@ int main()
             // converting Eigen::Matrix4f to Eigen::Affine3f
             Eigen::Affine3f transformationVisualization_icp;
             transformationVisualization_icp = transformation_icp[i] * allTransformations[i];
-
             std::stringstream ss_coordinatesystem;
             ss_coordinatesystem << "object_pose_" << i;
-
             viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
 
             // if verification is good change color to green
@@ -899,6 +908,61 @@ int main()
                 viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
             }
         }
+
+        while (!viewer_hv.wasStopped())
+        {
+            viewer_hv.spinOnce();
+        }
+    }
+    else
+    {
+        // ----------------------- ICP Fitness Scores -----------------------
+
+        std::cout << "----------------------" << std::endl;
+        pcl::console::print_highlight("Hypothesis Verification using lowest ICP Fitness Score...\n");
+
+        // test printing icp scores
+        for (int i = 0; i < icp_scores.size(); i++)
+        {
+            std::cout << "Score " << i << ": " << icp_scores.at(i) << std::endl;
+        }
+
+        // getting lowest icp score
+        int index_lowestICPScore;
+        double min_ICPScore = 100.0;
+        for (int i = 0; i < icp_scores.size(); i++)
+        {
+            if (icp_scores.at(i) < min_ICPScore)
+            {
+                min_ICPScore = icp_scores.at(i);
+                index_lowestICPScore = i;
+            }
+        }
+        std::cout << "lowest ICP: " << min_ICPScore << " at " << index_lowestICPScore << std::endl;
+
+        // ----------------------- Visualizing after Hypothesis Verification -----------------------
+
+        pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
+        viewer_hv.addCoordinateSystem(0.1);
+
+        // show scene
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
+        viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
+
+        // show CoordinateSystem
+        // converting Eigen::Matrix4f to Eigen::Affine3f
+        Eigen::Affine3f transformationVisualization_icp;
+        transformationVisualization_icp = transformation_icp[index_lowestICPScore] * allTransformations[index_lowestICPScore];
+        std::stringstream ss_coordinatesystem;
+        ss_coordinatesystem << "object_pose_" << index_lowestICPScore;
+        viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
+
+        // show fitted model
+        std::stringstream ss_instance;
+        ss_instance << "instance_" << index_lowestICPScore;
+        ss_instance << "_registered" << std::endl;
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[index_lowestICPScore], 0, 255, 0); // green
+        viewer_hv.addPointCloud(registered_instances[index_lowestICPScore], registered_instance_color_handler, ss_instance.str());
 
         while (!viewer_hv.wasStopped())
         {
