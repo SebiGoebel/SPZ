@@ -1,0 +1,2 @@
+../data/aufgenommen/teil_aufgenommen_up.pcd
+../data/aufgenommen/teil_aufgenommen_down.pcd
