@@ -48,16 +48,17 @@
 
 // #define filename_pcd_scene "../data/pointcloud_1_down_turned.pcd"
 // #define filename_pcd_scene "../data/pointcloud_1_down.pcd"
-#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
+//#define filename_pcd_scene "../data/pointcloud_1_up.pcd"
 //#define filename_pcd_scene "../data/pointcloud_1_up_turned.pcd"
 //#define filename_pcd_scene "../data/pointcloud_2.pcd"
-//   #define filename_pcd_scene "../data/pointcloud_3.pcd"
+   #define filename_pcd_scene "../data/pointcloud_3.pcd"
 //#define filename_pcd_scene "../data/pointcloud_6.pcd"
 
 
 //#define filename_pcd_model "../data/teil_default.pcd"
 //#define filename_pcd_model "../data/teil_leafSize5.pcd"
 #define filename_pcd_model "../data/aufgenommen/teil_aufgenommen_up.pcd"
+//#define filename_pcd_model "../data/aufgenommen/teil_aufgenommen_down.pcd"
 
 // test
 // #define filename_pcd_scene "../data/milk_cartoon_all_small_clorox.pcd"
