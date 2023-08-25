@@ -1,5 +1,2 @@
 ../data/aufgenommen/teil_aufgenommen_up.pcd
 ../data/aufgenommen/teil_aufgenommen_down.pcd
-../data/aufgenommen/teil_aufgenommen_seitlich_1.pcd
-../data/aufgenommen/teil_aufgenommen_seitlich_2.pcd
-../data/aufgenommen/teil_aufgenommen_seitlich_3.pcd
