@@ -386,7 +386,7 @@ int main()
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_models_keypoints;
     std::vector<pcl::PointCloud<pcl::SHOT352>::Ptr> cloud_models_descriptors;
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr model(new pcl::PointCloud<pcl::PointXYZ>()); ///// ----> wird man am ende nicht mehr brauchen
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr model(new pcl::PointCloud<pcl::PointXYZ>()); ///// ----> wird man am ende nicht mehr brauchen
 
     // scene clouds
     pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>());
@@ -653,10 +653,10 @@ int main()
         }
 
         // nur für visualisierung
-        pcl::PointCloud<pcl::PointXYZ>::Ptr model_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::PointCloud<pcl::PointXYZ>::Ptr scene_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::copyPointCloud(*cloud_models_keypoints.at(j), model_good_keypoints_indices, *model_good_kp);
-        pcl::copyPointCloud(*scene_keypoints, scene_good_keypoints_indices, *scene_good_kp);
+        // pcl::PointCloud<pcl::PointXYZ>::Ptr model_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
+        // pcl::PointCloud<pcl::PointXYZ>::Ptr scene_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
+        // pcl::copyPointCloud(*cloud_models_keypoints.at(j), model_good_keypoints_indices, *model_good_kp);
+        // pcl::copyPointCloud(*scene_keypoints, scene_good_keypoints_indices, *scene_good_kp);
 
         std::cout << "Correspondences found: " << model_scene_corrs->size() << std::endl;
 
@@ -710,7 +710,7 @@ int main()
 
     for (int model_number = 0; model_number < cloud_models.size(); model_number++)
     {
-        std::cout << "---------------------------------------------" << std::endl;
+        std::cout << "\n---------------------------------------------" << std::endl;
         std::cout << "  ----------------  Model " << model_number << " --------------" << std::endl;
         std::cout << "---------------------------------------------" << std::endl;
 
@@ -748,274 +748,326 @@ int main()
         */
     }
 
-    /*
-        // ----------------------- Visualisierung von allen instances -----------------------
+    // ----------------------- Visualisierung von allen gefundenen Instanzen -----------------------
 
-        pcl::console::print_highlight("Visualising Results of all found Instances...\n");
+    pcl::console::print_highlight("Visualising Results of all found Instances...\n");
 
-        pcl::visualization::PCLVisualizer viewer("Correspondence Grouping");
-        viewer.addCoordinateSystem(0.1);
-        viewer.addPointCloud(scene, "scene_cloud");
+    pcl::visualization::PCLVisualizer viewer("Correspondence Grouping");
+    viewer.initCameraParameters();
+    viewer.setBackgroundColor(0.0, 0.0, 0.0);
+    viewer.addCoordinateSystem(0.1);
+    viewer.addPointCloud(scene, "scene_cloud");
+
+    for (int model_number = 0; model_number < cloud_models.size(); model_number++)
+    {
+        // model color handler
+        double cloud_color_r, cloud_color_g, cloud_color_b;
+        if (model_number == 0) // red
+        {
+            cloud_color_r = 255;
+            cloud_color_g = 0;
+            cloud_color_b = 0;
+        }
+        if (model_number == 1) // blue
+        {
+            cloud_color_r = 0;
+            cloud_color_g = 0;
+            cloud_color_b = 255;
+        }
+        if (model_number == 2) // pink
+        {
+            cloud_color_r = 255;
+            cloud_color_g = 0;
+            cloud_color_b = 255;
+        }
+        if (model_number == 3) // yellow
+        {
+            cloud_color_r = 255;
+            cloud_color_g = 255;
+            cloud_color_b = 128;
+        }
+        if (model_number == 4) // cyan
+        {
+            cloud_color_r = 0;
+            cloud_color_g = 255;
+            cloud_color_b = 255;
+        }
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints(new pcl::PointCloud<pcl::PointXYZ>());
 
         if (showingCorresopences)
         {
-            //  We are translating the model so that it doesn't end in the middle of the scene representation
-            pcl::transformPointCloud(*model, *off_scene_model, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
-            // pcl::transformPointCloud(*model_keypoints, *off_scene_model_keypoints, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+            // for transdorming shown models
+            float modelVis_x = 0.25 - model_number * 0.25;
+            float modelVis_y = 0.2;
 
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> off_scene_model_color_handler(off_scene_model, 255, 255, 128); // yellow
-            viewer.addPointCloud(off_scene_model, off_scene_model_color_handler, "off_scene_model");
+            if (model_number >= 3)
+            {
+                modelVis_y = -0.15;
+                modelVis_x += 0.5;
+            }
+
+            // Transforming all shown models, so that they don't end up in the scene or in each other
+            pcl::transformPointCloud(*cloud_models.at(model_number), *off_scene_model, Eigen::Vector3f(modelVis_x, modelVis_y, 0), Eigen::Quaternionf(0, 0, 0, 1));
+            pcl::transformPointCloud(*cloud_models_keypoints.at(model_number), *off_scene_model_keypoints, Eigen::Vector3f(modelVis_x, modelVis_y, 0), Eigen::Quaternionf(0, 0, 0, 1));
+
+            // string id + color handler + adding Point Cloud
+            std::stringstream ss_model;
+            ss_model << "model_" << model_number;
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> off_scene_model_color_handler(off_scene_model, cloud_color_r, cloud_color_g, cloud_color_b);
+            viewer.addPointCloud(off_scene_model, off_scene_model_color_handler, ss_model.str());
         }
 
-        for (int i = 0; i < allTransformations.size(); i++)
+        for (int i = 0; i < cloud_models_allTransformations.at(model_number).size(); i++)
         {
+            pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_model(new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::transformPointCloud(*cloud_models.at(model_number), *transformed_model, cloud_models_allTransformations.at(model_number).at(i));
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr rotated_model(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::transformPointCloud(*model, *rotated_model, allTransformations[i]);
-
-            std::stringstream ss_cloud;
-            ss_cloud << "instance" << i;
-
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> rotated_model_color_handler(rotated_model, 255, 0, 0); // red
-            viewer.addPointCloud(rotated_model, rotated_model_color_handler, ss_cloud.str());
+            // string id + color handler + adding Point Cloud
+            std::stringstream ss_transformed_cloud;
+            ss_transformed_cloud << "model_" << model_number << "_instance_" << i;
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> transformed_model_color_handler(transformed_model, cloud_color_r, cloud_color_g, cloud_color_b);
+            viewer.addPointCloud(transformed_model, transformed_model_color_handler, ss_transformed_cloud.str());
 
             // show CoordinateSystem
             // converting Eigen::Matrix4f to Eigen::Affine3f
             Eigen::Affine3f transformationVisualization;
-            transformationVisualization = allTransformations[i];
+            transformationVisualization = cloud_models_allTransformations.at(model_number).at(i);
 
+            // string id + adding Coordinatesystem
             std::stringstream ss_coordinatesystem;
-            ss_coordinatesystem << "object_pose_" << i;
-
+            ss_coordinatesystem << "model_" << model_number << "object_pose_" << i;
             viewer.addCoordinateSystem(0.1, transformationVisualization, ss_coordinatesystem.str(), 0);
 
             if (showingCorresopences)
             {
-                for (int j = 0; j < clustered_corrs[i].size(); j++)
+                for (int j = 0; j < cloud_models_clustered_corrs.at(model_number).at(i).size(); j++)
                 {
                     std::stringstream ss_line;
-                    ss_line << "correspondence_line" << i << "_" << j;
+                    ss_line << "model_" << model_number << "correspondence_line" << i << "_" << j;
 
-                    pcl::PointXYZ &model_point = off_scene_model_keypoints->at(clustered_corrs[i][j].index_query);
-                    pcl::PointXYZ &scene_point = scene_keypoints->at(clustered_corrs[i][j].index_match);
+                    pcl::PointXYZ &model_point = off_scene_model_keypoints->at(cloud_models_clustered_corrs.at(model_number)[i][j].index_query);
+                    pcl::PointXYZ &scene_point = scene_keypoints->at(cloud_models_clustered_corrs.at(model_number)[i][j].index_match);
 
                     //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
-                    viewer.addLine<pcl::PointXYZ, pcl::PointXYZ>(model_point, scene_point, 0, 255, 0, ss_line.str());
+                    viewer.addLine<pcl::PointXYZ, pcl::PointXYZ>(model_point, scene_point, 0, 255, 0, ss_line.str()); // lines in green
                 }
             }
         }
+    }
 
-        while (!viewer.wasStopped())
+    while (!viewer.wasStopped())
+    {
+        viewer.spinOnce();
+    }
+
+    // ----------------------- Generating the clouds of the found instances -----------------------
+
+    // schreibe alle hypothesen von allen models in einen instanzen-vector
+
+    pcl::console::print_highlight("Transforming all instances...\n");
+
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> instances;
+
+    for (int model_number = 0; model_number < cloud_models.size(); model_number++)
+    {
+        for (int i = 0; i < cloud_models_allTransformations.at(model_number).size(); i++)
         {
-            viewer.spinOnce();
+            pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_model(new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::transformPointCloud(*cloud_models.at(model_number), *transformed_model, cloud_models_allTransformations.at(model_number).at(i));
+            instances.push_back(transformed_model);
         }
+    }
 
+    // ----------------------- ICP -----------------------
 
+    pcl::console::print_highlight("ICP...\n");
 
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> registered_instances;
+    std::vector<Eigen::Matrix4f> transformation_icp;
+    std::vector<double> icp_scores;
 
-                            // ----------------------- Generating the clouds of the found instances -----------------------
+    for (int i = 0; i < instances.size(); i++)
+    {
+        pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+        icp.setMaximumIterations(icpMaxIterations);
+        icp.setMaxCorrespondenceDistance(icpCorrespondenceDistance); // 2.5 * resolution // resolution = 0.0095
+        icp.setInputTarget(scene);
+        icp.setInputSource(instances[i]);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr registered(new pcl::PointCloud<pcl::PointXYZ>);
+        icp.align(*registered);
+        registered_instances.push_back(registered);
 
-                            pcl::console::print_highlight("Transforming all instances...\n");
+        // Printing results of ICP
+        std::cout << "Instance " << i << " ";
+        if (icp.hasConverged())
+        {
+            std::cout << "Aligned!"
+                      << " --- ICP Fitness Score: " << icp.getFitnessScore() << std::endl;
+            icp_scores.push_back(icp.getFitnessScore());
+        }
+        else
+        {
+            std::cout << "Not Aligned!" << std::endl;
+            icp_scores.push_back(100.0);
+        }
+        transformation_icp.push_back(icp.getFinalTransformation());
+    }
 
-                            std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> instances;
+    /*
+        // ----------------------- Hypothesis Verification -----------------------
 
-                            for (int i = 0; i < allTransformations.size(); i++)
-                            {
-                                pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_model(new pcl::PointCloud<pcl::PointXYZ>());
-                                pcl::transformPointCloud(*model, *transformed_model, allTransformations[i]);
-                                instances.push_back(transformed_model);
-                            }
+                                                if (poseHypothesisVerification)
+                                                {
+                                                    // ----------------------- Global Hypothesis Verification -----------------------
 
-                            // ----------------------- ICP -----------------------
+                                                    std::cout << "----------------------" << std::endl;
+                                                    pcl::console::print_highlight("Hypothesis Verification using Global Hypotheses Verification...\n");
 
-                            pcl::console::print_highlight("ICP...\n");
+                                                    std::vector<bool> hypotheses_mask; // Mask Vector to identify positive hypotheses
 
-                            std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> registered_instances;
-                            std::vector<Eigen::Matrix4f> transformation_icp;
-                            std::vector<double> icp_scores;
+                                                    pcl::GlobalHypothesesVerification<pcl::PointXYZ, pcl::PointXYZ> GoHv;
 
-                            for (int i = 0; i < allTransformations.size(); i++)
-                            {
-                                pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-                                icp.setMaximumIterations(icpMaxIterations);
-                                icp.setMaxCorrespondenceDistance(icpCorrespondenceDistance); // 2.5 * resolution // resolution = 0.0095
-                                icp.setInputTarget(scene);
-                                icp.setInputSource(instances[i]);
-                                pcl::PointCloud<pcl::PointXYZ>::Ptr registered(new pcl::PointCloud<pcl::PointXYZ>);
-                                icp.align(*registered);
-                                registered_instances.push_back(registered);
+                                                    GoHv.setSceneCloud(scene);                  // Scene Cloud
+                                                    GoHv.addModels(registered_instances, true); // Models to verify
+                                                    GoHv.setResolution(hvResolution);
+                                                    GoHv.setResolutionOccupancyGrid(hvOccupancyGridResolution);
+                                                    GoHv.setInlierThreshold(hvInlierTH);
+                                                    GoHv.setOcclusionThreshold(hvOcclusionTH);
+                                                    GoHv.setRegularizer(hvRegulizer);
+                                                    GoHv.setRadiusClutter(hvClutterRadius);
+                                                    GoHv.setClutterRegularizer(hvClutterRegularizer);
+                                                    GoHv.setDetectClutter(hvDetectClutter);
+                                                    GoHv.setRadiusNormals(hvNormalRadius);
 
-                                // Printing results of ICP
-                                std::cout << "Instance " << i << " ";
-                                if (icp.hasConverged())
-                                {
-                                    std::cout << "Aligned!"
-                                              << " --- ICP Fitness Score: " << icp.getFitnessScore() << std::endl;
-                                    icp_scores.push_back(icp.getFitnessScore());
-                                }
-                                else
-                                {
-                                    std::cout << "Not Aligned!" << std::endl;
-                                    icp_scores.push_back(100.0);
-                                }
-                                transformation_icp.push_back(icp.getFinalTransformation());
-                            }
+                                                    GoHv.verify();
+                                                    GoHv.getMask(hypotheses_mask); // i-element TRUE if hvModels[i] verifies hypotheses
 
-                            // ----------------------- Hypothesis Verification -----------------------
+                                                    for (std::size_t i = 0; i < hypotheses_mask.size(); i++)
+                                                    {
+                                                        if (hypotheses_mask[i])
+                                                        {
+                                                            std::cout << "Instance " << i << " is GOOD! <---" << std::endl;
+                                                        }
+                                                        else
+                                                        {
+                                                            std::cout << "Instance " << i << " is bad!" << std::endl;
+                                                        }
+                                                    }
 
-                            if (poseHypothesisVerification)
-                            {
-                                // ----------------------- Global Hypothesis Verification -----------------------
+                                                    std::cout << "----------------------" << std::endl;
 
-                                std::cout << "----------------------" << std::endl;
-                                pcl::console::print_highlight("Hypothesis Verification using Global Hypotheses Verification...\n");
+                                                    // std::cout << "hypotheses_mask.size: " << hypotheses_mask.size() << std::endl;
+                                                    // std::cout << "instances.size: " << instances.size() << std::endl;
 
-                                std::vector<bool> hypotheses_mask; // Mask Vector to identify positive hypotheses
+                                                    // ----------------------- Visualizing after Hypothesis Verification -----------------------
 
-                                pcl::GlobalHypothesesVerification<pcl::PointXYZ, pcl::PointXYZ> GoHv;
+                                                    pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
+                                                    viewer_hv.addCoordinateSystem(0.1);
+                                                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
+                                                    viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
 
-                                GoHv.setSceneCloud(scene);                  // Scene Cloud
-                                GoHv.addModels(registered_instances, true); // Models to verify
-                                GoHv.setResolution(hvResolution);
-                                GoHv.setResolutionOccupancyGrid(hvOccupancyGridResolution);
-                                GoHv.setInlierThreshold(hvInlierTH);
-                                GoHv.setOcclusionThreshold(hvOcclusionTH);
-                                GoHv.setRegularizer(hvRegulizer);
-                                GoHv.setRadiusClutter(hvClutterRadius);
-                                GoHv.setClutterRegularizer(hvClutterRegularizer);
-                                GoHv.setDetectClutter(hvDetectClutter);
-                                GoHv.setRadiusNormals(hvNormalRadius);
+                                                    pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_hv(new pcl::PointCloud<pcl::PointXYZ>());
+                                                    pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints_hv(new pcl::PointCloud<pcl::PointXYZ>());
 
-                                GoHv.verify();
-                                GoHv.getMask(hypotheses_mask); // i-element TRUE if hvModels[i] verifies hypotheses
+                                                    pcl::PointCloud<pcl::PointXYZ>::Ptr off_model_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
+                                                    pcl::transformPointCloud(*model, *off_scene_model_hv, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+                                                    // pcl::transformPointCloud(*model_keypoints, *off_scene_model_keypoints_hv, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+                                                    pcl::transformPointCloud(*model_good_kp, *off_model_good_kp, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
 
-                                for (std::size_t i = 0; i < hypotheses_mask.size(); i++)
-                                {
-                                    if (hypotheses_mask[i])
-                                    {
-                                        std::cout << "Instance " << i << " is GOOD! <---" << std::endl;
-                                    }
-                                    else
-                                    {
-                                        std::cout << "Instance " << i << " is bad!" << std::endl;
-                                    }
-                                }
+                                                    for (int i = 0; i < instances.size(); i++)
+                                                    {
+                                                        std::stringstream ss_instance;
+                                                        ss_instance << "instance_" << i;
 
-                                std::cout << "----------------------" << std::endl;
+                                                        // All instances in red
+                                                        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> instance_color_handler(instances[i], 255, 0, 0); // red
+                                                        // viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
 
-                                // std::cout << "hypotheses_mask.size: " << hypotheses_mask.size() << std::endl;
-                                // std::cout << "instances.size: " << instances.size() << std::endl;
+                                                        // show CoordinateSystem
+                                                        // converting Eigen::Matrix4f to Eigen::Affine3f
+                                                        Eigen::Affine3f transformationVisualization_icp;
+                                                        transformationVisualization_icp = transformation_icp[i] * allTransformations[i];
+                                                        std::stringstream ss_coordinatesystem;
+                                                        ss_coordinatesystem << "object_pose_" << i;
+                                                        viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
 
-                                // ----------------------- Visualizing after Hypothesis Verification -----------------------
+                                                        // if verification is good change color to green
+                                                        ss_instance << "_registered" << std::endl;
+                                                        if (hypotheses_mask[i])
+                                                        {
+                                                            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 0); // green
+                                                            viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
+                                                        }
+                                                        else
+                                                        {
+                                                            // change color to cyan
+                                                            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 255); // cyan - türkis
+                                                            viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
+                                                        }
+                                                    }
 
-                                pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
-                                viewer_hv.addCoordinateSystem(0.1);
-                                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
-                                viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
+                                                    while (!viewer_hv.wasStopped())
+                                                    {
+                                                        viewer_hv.spinOnce();
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    // ----------------------- ICP Fitness Scores -----------------------
 
-                                pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_hv(new pcl::PointCloud<pcl::PointXYZ>());
-                                pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints_hv(new pcl::PointCloud<pcl::PointXYZ>());
+                                                    std::cout << "----------------------" << std::endl;
+                                                    pcl::console::print_highlight("Hypothesis Verification using lowest ICP Fitness Score...\n");
 
-                                pcl::PointCloud<pcl::PointXYZ>::Ptr off_model_good_kp(new pcl::PointCloud<pcl::PointXYZ>());
-                                pcl::transformPointCloud(*model, *off_scene_model_hv, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
-                                // pcl::transformPointCloud(*model_keypoints, *off_scene_model_keypoints_hv, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
-                                pcl::transformPointCloud(*model_good_kp, *off_model_good_kp, Eigen::Vector3f(0, 0, 0), Eigen::Quaternionf(0, 0, 0, 1));
+                                                    // test printing icp scores
+                                                    for (int i = 0; i < icp_scores.size(); i++)
+                                                    {
+                                                        std::cout << "Score " << i << ": " << icp_scores.at(i) << std::endl;
+                                                    }
 
-                                for (int i = 0; i < instances.size(); i++)
-                                {
-                                    std::stringstream ss_instance;
-                                    ss_instance << "instance_" << i;
+                                                    // getting lowest icp score
+                                                    int index_lowestICPScore;
+                                                    double min_ICPScore = 100.0;
+                                                    for (int i = 0; i < icp_scores.size(); i++)
+                                                    {
+                                                        if (icp_scores.at(i) < min_ICPScore)
+                                                        {
+                                                            min_ICPScore = icp_scores.at(i);
+                                                            index_lowestICPScore = i;
+                                                        }
+                                                    }
+                                                    std::cout << "lowest ICP: " << min_ICPScore << " at " << index_lowestICPScore << std::endl;
 
-                                    // All instances in red
-                                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> instance_color_handler(instances[i], 255, 0, 0); // red
-                                    // viewer_hv.addPointCloud(instances[i], instance_color_handler, ss_instance.str());
+                                                    // ----------------------- Visualizing after Hypothesis Verification -----------------------
 
-                                    // show CoordinateSystem
-                                    // converting Eigen::Matrix4f to Eigen::Affine3f
-                                    Eigen::Affine3f transformationVisualization_icp;
-                                    transformationVisualization_icp = transformation_icp[i] * allTransformations[i];
-                                    std::stringstream ss_coordinatesystem;
-                                    ss_coordinatesystem << "object_pose_" << i;
-                                    viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
+                                                    pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
+                                                    viewer_hv.addCoordinateSystem(0.1);
 
-                                    // if verification is good change color to green
-                                    ss_instance << "_registered" << std::endl;
-                                    if (hypotheses_mask[i])
-                                    {
-                                        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 0); // green
-                                        viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
-                                    }
-                                    else
-                                    {
-                                        // change color to cyan
-                                        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[i], 0, 255, 255); // cyan - türkis
-                                        viewer_hv.addPointCloud(registered_instances[i], registered_instance_color_handler, ss_instance.str());
-                                    }
-                                }
+                                                    // show scene
+                                                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
+                                                    viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
 
-                                while (!viewer_hv.wasStopped())
-                                {
-                                    viewer_hv.spinOnce();
-                                }
-                            }
-                            else
-                            {
-                                // ----------------------- ICP Fitness Scores -----------------------
+                                                    // show CoordinateSystem
+                                                    // converting Eigen::Matrix4f to Eigen::Affine3f
+                                                    Eigen::Affine3f transformationVisualization_icp;
+                                                    transformationVisualization_icp = transformation_icp[index_lowestICPScore] * allTransformations[index_lowestICPScore];
+                                                    std::stringstream ss_coordinatesystem;
+                                                    ss_coordinatesystem << "object_pose_" << index_lowestICPScore;
+                                                    viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
 
-                                std::cout << "----------------------" << std::endl;
-                                pcl::console::print_highlight("Hypothesis Verification using lowest ICP Fitness Score...\n");
+                                                    // show fitted model
+                                                    std::stringstream ss_instance;
+                                                    ss_instance << "instance_" << index_lowestICPScore;
+                                                    ss_instance << "_registered" << std::endl;
+                                                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[index_lowestICPScore], 0, 255, 0); // green
+                                                    viewer_hv.addPointCloud(registered_instances[index_lowestICPScore], registered_instance_color_handler, ss_instance.str());
 
-                                // test printing icp scores
-                                for (int i = 0; i < icp_scores.size(); i++)
-                                {
-                                    std::cout << "Score " << i << ": " << icp_scores.at(i) << std::endl;
-                                }
-
-                                // getting lowest icp score
-                                int index_lowestICPScore;
-                                double min_ICPScore = 100.0;
-                                for (int i = 0; i < icp_scores.size(); i++)
-                                {
-                                    if (icp_scores.at(i) < min_ICPScore)
-                                    {
-                                        min_ICPScore = icp_scores.at(i);
-                                        index_lowestICPScore = i;
-                                    }
-                                }
-                                std::cout << "lowest ICP: " << min_ICPScore << " at " << index_lowestICPScore << std::endl;
-
-                                // ----------------------- Visualizing after Hypothesis Verification -----------------------
-
-                                pcl::visualization::PCLVisualizer viewer_hv("Hypotheses Verification");
-                                viewer_hv.addCoordinateSystem(0.1);
-
-                                // show scene
-                                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> scene_color_handler(scene, 255, 0, 0); // red
-                                viewer_hv.addPointCloud(scene, scene_color_handler, "scene_cloud");
-
-                                // show CoordinateSystem
-                                // converting Eigen::Matrix4f to Eigen::Affine3f
-                                Eigen::Affine3f transformationVisualization_icp;
-                                transformationVisualization_icp = transformation_icp[index_lowestICPScore] * allTransformations[index_lowestICPScore];
-                                std::stringstream ss_coordinatesystem;
-                                ss_coordinatesystem << "object_pose_" << index_lowestICPScore;
-                                viewer_hv.addCoordinateSystem(0.1, transformationVisualization_icp, ss_coordinatesystem.str(), 0);
-
-                                // show fitted model
-                                std::stringstream ss_instance;
-                                ss_instance << "instance_" << index_lowestICPScore;
-                                ss_instance << "_registered" << std::endl;
-                                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> registered_instance_color_handler(registered_instances[index_lowestICPScore], 0, 255, 0); // green
-                                viewer_hv.addPointCloud(registered_instances[index_lowestICPScore], registered_instance_color_handler, ss_instance.str());
-
-                                while (!viewer_hv.wasStopped())
-                                {
-                                    viewer_hv.spinOnce();
-                                }
-                            }
-                        */
+                                                    while (!viewer_hv.wasStopped())
+                                                    {
+                                                        viewer_hv.spinOnce();
+                                                    }
+                                                }
+                                            */
     return 0;
 }
