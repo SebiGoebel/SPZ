@@ -25,12 +25,6 @@ http://www.open3d.org/docs/release/getting_started.html
 PCL Doku:
 https://pcl.readthedocs.io/projects/tutorials/en/master/walkthrough.html#visualization
 
-STL2PCD:
-https://github.com/ktgiahieu/STL2PCL/blob/master/STL2PCD.cpp
-
-
-
-
 
 stl2pcd:
 
