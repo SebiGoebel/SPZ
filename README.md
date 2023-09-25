@@ -1,6 +1,6 @@
 # SPZ
 
-## Anzeigen einer pointcloud in rviz
+## Anzeigen einer pointcloud in rviz ohne eigener Node
 
 Terminal 1:
 roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
@@ -8,13 +8,13 @@ roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
 Terminal 2:
 rivz
 
+## Anzeigen einer pointcloud in rviz
+
+roslaunch showPointCloud.launch
+
 ## Abspeichern einer pointcloud in ein .pcd-File
 
-Terminal 1:
-roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
-
-Terminal 2:
-rosrun beginner_tutorials listener
+roslaunch gettingPointCloudFromRealsense.launch
 
 
 ## wichtige Links
